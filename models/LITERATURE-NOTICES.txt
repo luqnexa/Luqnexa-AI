@@ -1,0 +1,28 @@
+Literary training sources for NextIME
+
+Aozora Bunko: selected Japanese original works whose work and person copyright
+flags are both "none" in the official index. Translations and other contributor
+roles are excluded in this allowlist. Handling rules:
+https://www.aozora.gr.jp/guide/kijyunn.html
+This is not a claim that every work in Aozora Bunko is free of copyright.
+Original author/title, input and proofreading credits, bibliographic colophons,
+source URLs and downloaded-source hashes are preserved in literature-training.json.
+
+Standard Ebooks: selected original English works by Jane Austen (d. 1817),
+Charles Dickens (d. 1870), and Lewis Carroll (d. 1898), published before 1900.
+Underlying works were reviewed for use in Japan; this is not a worldwide legal
+guarantee. Standard Ebooks editorial contributions are dedicated under CC0 1.0:
+https://creativecommons.org/publicdomain/zero/1.0/
+Each ebook's original license statement and source URL are retained in the JSON.
+The text/artwork distinction is respected; artwork is not used for training.
+Author date references: https://www.gutenberg.org/ebooks/1342
+https://www.gutenberg.org/ebooks/46 and https://www.gutenberg.org/ebooks/11
+Project Gutenberg was researched, but no bulk download from its main site is used.
+
+Changes: extract body text, remove ruby and notation/colophons/headings, normalize
+whitespace, divide into sentences and <=160-character fragments, filter short
+fragments, deduplicate, split by book, count and prune character n-gram features.
+No modernization of spelling or factual correction. No endorsement is implied.
+Only train-partition books contribute to context-literature.bin. Held-out books
+are used for validation/testing. See literature-training.json for exact scope.
+Third-party underlying text is not relicensed AGPL. Importer/model code is AGPL.

@@ -1,0 +1,44 @@
+{
+  "source": "https://downloads.tatoeba.org/exports/per_language/jpn/jpn_sentences_detailed.tsv.bz2",
+  "license": "https://creativecommons.org/licenses/by/2.0/fr/",
+  "source_sha256": "f597d8f76473181f7fae482481030a31565fb427d64d2def8595218d128c6981",
+  "model_sha256": "463409823776c7cffbd9f42c14fea14337e8f171717385f4c935ef4edbee851f",
+  "model_bytes": 2094472,
+  "partitions": {
+    "train": 118726,
+    "validation": 14932,
+    "test": 14963
+  },
+  "split": "SHA256(text UTF-8), first four bytes little endian modulo 10: 0 test, 1 validation, else train",
+  "raw_features": 469946,
+  "retained_features": 130904,
+  "min_count": 3,
+  "cap": 200000,
+  "evaluation": {
+    "task": "held-out intact vs middle adjacent-character swap; NOT IME conversion accuracy",
+    "pairs": 14904,
+    "wins": 14583,
+    "ties": 25,
+    "losses": 296,
+    "intact_win_rate": 0.9784621578099839,
+    "feature_coverage": 0.8777529592258673
+  },
+  "previous_curated_model": {
+    "wins": 3694,
+    "ties": 10626,
+    "losses": 584
+  },
+  "bundled_combined_model": {
+    "wins": 13773,
+    "ties": 631,
+    "losses": 500
+  },
+  "validation_used_for_tuning": false,
+  "synthetic": {
+    "source": "ChatGPT-generated examples for NextIME, 2026-10-11",
+    "sentences": 128,
+    "sha256": "2f5eea52030d51551e29ef04ee189d92b9e83f00c9bbe19d277c8432a3a6bbed",
+    "license": "AGPL-3.0-only",
+    "independent_evaluation": false
+  }
+}

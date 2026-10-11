@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = ["crates/nextime-ai", "crates/nextime-ranker"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "AGPL-3.0-only"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[workspace.dependencies]
+nextime-ai = { path = "crates/nextime-ai" }
+nextime-ranker = { path = "crates/nextime-ranker" }
