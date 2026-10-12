@@ -1,0 +1,51 @@
+# Inferred reference spellings; user supplied inputs only; NOT training data
+kishagakishadekishashita	記者が汽車で帰社した	ambiguous-reference
+konohashihawataremasen	この橋は渡れません	conversion
+hashidesaranohashiwotsutsuku	箸で皿の端をつつく	conversion
+koushounoyochigaaru	交渉の余地がある	ambiguous-reference
+koushounagijutsuwomanabu	高尚な技術を学ぶ	ambiguous-reference
+seikakunaseikakuwoshiru	正確な性格を知る	ambiguous-reference
+kanjinokanjiwooboeru	漢字の感じを覚える	ambiguous-reference
+atsuiochawoatsuihininomu	熱いお茶を暑い日に飲む	conversion
+kaitouwokaitousuru	解答を回答する	ambiguous-reference
+sentakunosentakushiwofuyasu	選択の選択肢を増やす	ambiguous-reference
+karenoaihafukai	彼の愛は深い	conversion
+aigagazouwoseiseisuru	AIが画像を生成する	conversion
+aiwodounyuushitegyoumuwokaizen	AIを導入して業務を改善	conversion
+konoaihahonmonoda	この愛は本物だ	ambiguous-reference
+kikaigakikaiwoseigyosuru	機械が機械を制御する	ambiguous-reference
+kikaigaarebakikaiwomitai	機会があれば機械を見たい	ambiguous-reference
+konomoderuhagakushuugahitsuyou	このモデルは学習が必要	conversion
+deetawomotonikekkawoyosokusuru	データをもとに結果を予測する	conversion
+shouraihajibundeOSwotsukuritai	将来は自分でOSを作りたい	conversion
+atarashiiAIhakotobanoimiworikaisuru	新しいAIは言葉の意味を理解する	conversion
+rustde memorywokanrisuru	Rustでmemoryを管理する	mixed
+githubni pullrequestwookuru	GitHubにpullrequestを送る	mixed
+dockerde containerwokidousuru	Dockerでcontainerを起動する	mixed
+linuxno kernelwokoushinsuru	Linuxのkernelを更新する	mixed
+pythonde jsonwoyomikomu	Pythonでjsonを読み込む	mixed
+gpuno vramgatarinai	GPUのvramが足りない	mixed
+apino responsegakaettekonai	APIのresponseが返ってこない	mixed
+typescriptde frontendwokaihatsusuru	TypeScriptでfrontendを開発する	mixed
+sshde servernisetsuzokusuru	SSHでserverに接続する	mixed
+aino inferencewokousokukasuru	AIのinferenceを高速化する	mixed
+kyouhabonjourtoaisatsushita	今日はbonjourと挨拶した	mixed
+한국어nohatsuonwobenkyousuru	한국어の発音を勉強する	mixed
+graciasnoimiwooshiete	graciasの意味を教えて	mixed
+mañanahasupeingonotango	mañanaはスペイン語の単語	mixed
+中文tonihongowokirikaeru	中文と日本語を切り替える	mixed
+hellotokonnichihawotsukaiwakeru	helloとこんにちはを使い分ける	mixed
+mercitoiwaretanodeoreiwokaeshita	merciと言われたのでお礼を返した	mixed
+안녕하세요hakankokugonoaisatsu	안녕하세요は韓国語の挨拶	mixed
+cafédepuroguramingusuru	caféでプログラミングする	mixed
+open source nosofutowosagasu	open sourceのソフトを探す	mixed
+konnbannha	こんばんは	typo
+ohayougozaimau	おはようございます	typo
+watasiha gakuseidesu	私は学生です	typo
+kyouha tenkiga iides	今日は天気がいいです	typo
+pytohn de codewokaku	Pythonでcodeを書く	typo
+aiwobenkyousiteimas	AIを勉強しています	typo
+ashitaha kaigigaarimau	明日は会議があります	typo
+arigatougozaimashia	ありがとうございました	typo
+nihonngono henkanwotamesu	日本語の変換を試す	typo
+rustde puroguramuwotukru	Rustでプログラムを作る	typo

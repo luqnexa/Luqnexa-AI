@@ -1,0 +1,45 @@
+{
+  "source": "Authored synthetic contrast examples, 2026-10-12",
+  "license": "AGPL-3.0-only",
+  "data_sha256": "e0233fd5c464d0416d97ebd4839eafd05b6aecccd1556e86d736867b66c89bb3",
+  "model_sha256": "86c6972a44805664d2e48bdc2f27db5748fd26023d910bd2c37374bd752ad5ce",
+  "model_bytes": 8200,
+  "dimension": 4096,
+  "epochs": 180,
+  "selected_epoch": 180,
+  "algorithm": "Pairwise logistic SGD; FNV-1a hashed character and context-cross features",
+  "learning_rate": 0.25,
+  "l2_per_update": 0.0001,
+  "shuffle": false,
+  "normalization": "L2 norm of hashed feature counts; Unicode code-point bounds: context last 24, candidate first 96",
+  "runtime": "Requires preceding context and both trained-domain alternatives; only matching candidates gain 0..3072 points; no candidate generation",
+  "selection": "Validation only; test and reported regression examples never update weights",
+  "input_history_used": false,
+  "independent_real_world_evaluation": false,
+  "evaluation": {
+    "train": {
+      "pairs": 36,
+      "wins": 36,
+      "ties": 0,
+      "losses": 0
+    },
+    "validation": {
+      "pairs": 9,
+      "wins": 9,
+      "ties": 0,
+      "losses": 0
+    },
+    "test": {
+      "pairs": 18,
+      "wins": 15,
+      "ties": 0,
+      "losses": 3
+    },
+    "regression": {
+      "pairs": 4,
+      "wins": 4,
+      "ties": 0,
+      "losses": 0
+    }
+  }
+}

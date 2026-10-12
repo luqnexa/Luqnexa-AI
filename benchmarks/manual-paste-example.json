@@ -1,0 +1,50 @@
+[
+  {
+    "topic": "homophones",
+    "input": "shiwoshizukaniyomu",
+    "reading": "しをしずかによむ",
+    "context": "詩集を開いて読書する",
+    "expected": "詩を静かに読む",
+    "incorrect": "死を静かに読む"
+  },
+  {
+    "topic": "technology",
+    "input": "pythondejouhouwoseirisuru",
+    "reading": "pythonでじょうほうをせいりする",
+    "context": "言語の正式名を使ってデータを扱う",
+    "expected": "Pythonで情報を整理する",
+    "incorrect": "pythonで情報を整理する"
+  },
+  {
+    "topic": "weather",
+    "input": "amewohakoniireru",
+    "reading": "あめをはこにいれる",
+    "context": "甘いお菓子を小箱にしまう",
+    "expected": "飴を箱に入れる",
+    "incorrect": "雨を箱に入れる"
+  },
+  {
+    "topic": "feelings",
+    "input": "aiwokotobanishitetsutaeru",
+    "reading": "あいをことばにしてつたえる",
+    "context": "大切な人への気持ちを言葉にする",
+    "expected": "愛を言葉にして伝える",
+    "incorrect": "AIを言葉にして伝える"
+  },
+  {
+    "topic": "everyday",
+    "input": "shiryouwonarabetehozonnsuru",
+    "reading": "しりょうをならべてほぞんする",
+    "context": "書類を順番に並べて保管する",
+    "expected": "資料を並べて保存する",
+    "incorrect": "死霊を並べて保存する"
+  },
+  {
+    "topic": "symbols_languages",
+    "input": "maruyon",
+    "reading": "まるよん",
+    "context": "丸囲みの四番目の数字を選ぶ",
+    "expected": "④",
+    "incorrect": "四"
+  }
+]

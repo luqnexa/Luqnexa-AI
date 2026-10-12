@@ -1,0 +1,31 @@
+# User-supplied regression cases; not held-out general accuracy
+hashiwowataru	橋を渡る	conversion
+hashidegohanwotaberu	箸でご飯を食べる	conversion
+tsukuenohashinioku	机の端に置く	conversion
+atarashiikikaiwokounyuusuru	新しい機械を購入する	conversion
+kikainiatta	機会に恵まれた	rewrite
+amegafutteiru	雨が降っている	conversion
+amewonameru	飴を舐める	conversion
+aiwokenkyuusuru	AIを研究する	conversion
+aiwotsutaeru	愛を伝える	conversion
+aiwoaiyousiteiru	AIを愛用している	conversion
+aiwotsukamu	愛を掴む	conversion
+saishinnogijutsudearuwaiwotsukamu	最新の技術であるAIを掴む	correction
+kyouhaku moridesu	今日は曇りです	spacing
+watashihanihongogasukidesu	私は日本語が好きです	conversion
+ashitahagakkouniikimasu	明日は学校に行きます	conversion
+kinoukatta honwoyomu	昨日買った本を読む	spacing
+kono mondaiwakaiketsusuru	この問題を解決する	rewrite
+karehanagaihanashiwoshita	彼は長い話をした	conversion
+pythondeaiwotsukuru	PythonでAIを作る	conversion
+rustdeprogramwokaku	Rustでプログラムを書く	conversion
+githubnirepositorywokoukai	GitHubにリポジトリを公開	conversion
+windowsdeappwokaihatsu	Windowsでアプリを開発	conversion
+cpuutogpuunoseinouwokuraberu	CPUとGPUの性能を比べる	correction
+nihongoto한국어womazeru	日本語と한국어を混ぜる	conversion
+ashitaseoulniiku	明日ソウルに行く	conversion
+bonjourtte douiuimi	bonjourってどういう意味	spacing
+konitiha	こんにちは	correction
+arigatougozaimsu	ありがとうございます	correction
+pythn de aiwotsukuru	PythonでAIを作る	correction
+watashiha aiwobenkyousiteiru	私はAIを勉強している	spacing

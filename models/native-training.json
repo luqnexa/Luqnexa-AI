@@ -1,0 +1,32 @@
+{
+  "algorithm": "Pairwise logistic SGD, hashed character/context features, i16 weights",
+  "pretrained_weights": false,
+  "source": "Authored synthetic sentence pairs",
+  "license": "AGPL-3.0-only",
+  "selected_epoch": 180,
+  "model_bytes": 8200,
+  "data_sha256": "151983e2347c196bd645a2be07c7f200748672a73d9175e4c93a8e96acc3c4e6",
+  "model_sha256": "c363f1b55c180bb2817cc7cc78d4b7a5c378862fd5dfe454eea7e77f2579ed01",
+  "selection": "Validation only; held-out test examples never update weights",
+  "runtime": "Bounded lexical domains; current sentence and optional previous context; no generation or network",
+  "evaluation": {
+    "train": {
+      "pairs": 38,
+      "wins": 38,
+      "ties": 0,
+      "losses": 0
+    },
+    "validation": {
+      "pairs": 4,
+      "wins": 4,
+      "ties": 0,
+      "losses": 0
+    },
+    "test": {
+      "pairs": 6,
+      "wins": 6,
+      "ties": 0,
+      "losses": 0
+    }
+  }
+}

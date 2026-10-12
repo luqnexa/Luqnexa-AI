@@ -9,6 +9,10 @@ import time
 import urllib.request
 
 CASES = [
+    ('人工知能の動作を試して確認します。', 'あいをたしかめたい', ['愛を確かめたい', 'AIを確かめたい', 'AIを確かめ鯛'], 1),
+    ('恋人との愛情や気持ちについて話しています。', 'あいをたしかめたい', ['AIを確かめたい', '愛を確かめたい'], 1),
+    ('恋人との愛情を大切にする話です。', 'あいをつかめ', ['AIを掴め', '愛を掴め'], 1),
+    ('人工知能を理解して活用する話です。', 'あいをつかめ', ['愛を掴め', 'AIを掴め'], 1),
     ('人工知能のチャットサービスを利用します。', 'chatgpt', ['chatgpt', 'ChatGPT', 'CHATGPT'], 1),
     ('ソースコードを書くエディターの話です。', 'vscode', ['vscode', 'VSCode', 'VSCODE'], 1),
     ('ソースコードを共有するサービスです。', 'github', ['github', 'GITHUB', 'GitHub'], 2),
@@ -40,6 +44,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, help='Report path; defaults to benchmarks/results/local-llm.json')
     parser.add_argument('--only-casing', action='store_true', help='Evaluate case alternatives only')
+    parser.add_argument('--only-reading', help='Evaluate only cases with this exact reading')
     args = parser.parse_args()
     config = json.loads((Path(os.environ['LOCALAPPDATA'])/'Luqnexa/local-ai.json').read_text())
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -52,6 +57,8 @@ def main():
 
     results = []
     for context, reading, candidates, expected in CASES:
+        if args.only_reading and reading != args.only_reading:
+            continue
         if args.only_casing and len({c.lower() for c in candidates}) != 1:
             continue
         started = time.monotonic()
@@ -69,6 +76,8 @@ def main():
                'latency_ms': round((time.monotonic()-started)*1000, 2)}
         results.append(row)
         print(json.dumps(row, ensure_ascii=False), flush=True)
+    if not results:
+        parser.error('No cases match the requested filter')
     root = Path(__file__).resolve().parents[1]
     manifest = json.loads((root/'.cache/local-ai/manifest.json').read_text())
     report = {'scope': f'{len(results)} synthetic cases, not general accuracy; first inference may be cold',

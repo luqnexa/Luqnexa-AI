@@ -26,6 +26,111 @@ struct Transport {
     started: Instant,
     submit: bool,
 }
+/// Non-sensitive configuration diagnostics suitable for the candidate UI.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LocalConfigError {
+    MissingDirectory,
+    MissingFile,
+    ReadFailed,
+    InvalidJson,
+    Disabled,
+    InvalidToken,
+}
+impl LocalConfigError {
+    pub fn status(self) -> &'static str {
+        match self {
+            Self::MissingDirectory => "local:directory-missing",
+            Self::MissingFile => "local:config-missing",
+            Self::ReadFailed => "local:config-unreadable",
+            Self::InvalidJson => "local:config-invalid",
+            Self::Disabled => "local:config-disabled",
+            Self::InvalidToken => "local:token-invalid",
+        }
+    }
+}
+#[cfg(windows)]
+fn configuration_diagnostic(directory: &std::path::Path, stage: &str, code: Option<i32>) {
+    // Local, bounded per-process diagnostic. Never include configuration contents,
+    // authentication tokens, candidates or preceding text.
+    let diagnostic = json!({"directory":directory.to_string_lossy(), "stage":stage,
+        "os_error":code, "pid":std::process::id()});
+    let path = std::env::temp_dir().join(format!("luqnexa-ai-config-{}.json", std::process::id()));
+    if let Ok(bytes) = serde_json::to_vec(&diagnostic) {
+        let _ = std::fs::write(path, bytes);
+    }
+}
+#[cfg(windows)]
+fn registry_configuration(directory: &std::path::Path) -> Option<Vec<u8>> {
+    use std::ffi::c_void;
+    #[link(name = "advapi32")]
+    unsafe extern "system" {
+        fn RegGetValueW(
+            key: *mut c_void,
+            subkey: *const u16,
+            value: *const u16,
+            flags: u32,
+            kind: *mut u32,
+            data: *mut c_void,
+            size: *mut u32,
+        ) -> i32;
+    }
+    let key = (-2147483647isize) as *mut c_void; // HKEY_CURRENT_USER
+    let subkey: Vec<u16> = "Software\\Luqnexa\\LocalAI\0".encode_utf16().collect();
+    let value: Vec<u16> = "Configuration\0".encode_utf16().collect();
+    let mut size = 0;
+    // REG_SZ only, with a fixed upper bound before allocation. No key creation.
+    let result = unsafe {
+        RegGetValueW(
+            key,
+            subkey.as_ptr(),
+            value.as_ptr(),
+            2,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            &mut size,
+        )
+    };
+    if result != 0 || !(2..=8192).contains(&size) || size % 2 != 0 {
+        configuration_diagnostic(directory, "registry-size", Some(result));
+        return None;
+    }
+    let mut data = vec![0u16; size as usize / 2];
+    let result = unsafe {
+        RegGetValueW(
+            key,
+            subkey.as_ptr(),
+            value.as_ptr(),
+            2,
+            std::ptr::null_mut(),
+            data.as_mut_ptr().cast(),
+            &mut size,
+        )
+    };
+    if result != 0 || size as usize > data.len() * 2 || size % 2 != 0 {
+        configuration_diagnostic(directory, "registry-read", Some(result));
+        return None;
+    }
+    data.truncate(size as usize / 2);
+    let bytes = String::from_utf16(&data)
+        .ok()?
+        .trim_end_matches('\0')
+        .as_bytes()
+        .to_vec();
+    let config = registry_bytes_for_directory(bytes, directory);
+    if config.is_none() {
+        configuration_diagnostic(directory, "registry-directory-or-json", None);
+    }
+    config
+}
+#[cfg(any(windows, test))]
+fn registry_bytes_for_directory(bytes: Vec<u8>, directory: &std::path::Path) -> Option<Vec<u8>> {
+    let value: Value = serde_json::from_slice(&bytes).ok()?;
+    // Do not apply another profile's mirror or override an isolated config directory.
+    if std::path::Path::new(value["directory"].as_str()?) != directory {
+        return None;
+    }
+    Some(bytes)
+}
 impl Transport {
     fn start(token: &str, path: &str, body: &Value, submit: bool) -> Option<Self> {
         // Fixed loopback only. The connection handshake is capped at 10 ms;
@@ -91,17 +196,42 @@ impl LocalLlm {
         self.request.is_some() || self.job.is_some() || self.transport.is_some()
     }
     pub fn configured() -> Option<Self> {
-        let directory = std::env::var_os("LOCALAPPDATA")?;
-        let path = std::path::PathBuf::from(directory).join("Luqnexa/local-ai.json");
-        let config: Value = serde_json::from_slice(&std::fs::read(path).ok()?).ok()?;
+        Self::try_configured().ok()
+    }
+    pub fn try_configured() -> Result<Self, LocalConfigError> {
+        let directory =
+            std::env::var_os("LOCALAPPDATA").ok_or(LocalConfigError::MissingDirectory)?;
+        let directory = std::path::PathBuf::from(directory);
+        let path = directory.join("Luqnexa/local-ai.json");
+        let bytes = std::fs::read(path).map_err(|error| {
+            #[cfg(windows)]
+            configuration_diagnostic(&directory, "file-read", error.raw_os_error());
+            if error.kind() == ErrorKind::NotFound {
+                LocalConfigError::MissingFile
+            } else {
+                LocalConfigError::ReadFailed
+            }
+        });
+        #[cfg(windows)]
+        let bytes = match bytes {
+            Err(LocalConfigError::MissingFile) => {
+                registry_configuration(&directory).ok_or(LocalConfigError::MissingFile)
+            }
+            other => other,
+        };
+        let bytes = bytes?;
+        let config: Value =
+            serde_json::from_slice(&bytes).map_err(|_| LocalConfigError::InvalidJson)?;
         if config["enabled"] != true {
-            return None;
+            return Err(LocalConfigError::Disabled);
         }
-        let token = config["token"].as_str()?;
+        let token = config["token"]
+            .as_str()
+            .ok_or(LocalConfigError::InvalidToken)?;
         if token.len() != 64 || !token.bytes().all(|b| b.is_ascii_hexdigit()) {
-            return None;
+            return Err(LocalConfigError::InvalidToken);
         }
-        Some(Self {
+        Ok(Self {
             token: token.into(),
             request: None,
             job: None,
@@ -242,6 +372,25 @@ impl LocalLlm {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn registry_mirror_requires_the_same_configuration_directory() {
+        use super::registry_bytes_for_directory;
+        let bytes = br#"{"enabled":true,"directory":"synthetic-profile"}"#.to_vec();
+        assert!(
+            registry_bytes_for_directory(bytes.clone(), std::path::Path::new("synthetic-profile"))
+                .is_some()
+        );
+        assert!(
+            registry_bytes_for_directory(bytes, std::path::Path::new("another-profile")).is_none()
+        );
+        assert!(
+            registry_bytes_for_directory(
+                b"broken".to_vec(),
+                std::path::Path::new("synthetic-profile")
+            )
+            .is_none()
+        );
+    }
     use super::*;
     fn model() -> LocalLlm {
         LocalLlm {

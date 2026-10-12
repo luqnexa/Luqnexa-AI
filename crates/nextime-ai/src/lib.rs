@@ -2,11 +2,15 @@
 //! Small locally trained character n-gram ranking model. No I/O or telemetry.
 use nextime_ranker::{Candidate, rank};
 use std::{collections::HashMap, sync::OnceLock};
+pub mod assist;
 mod casing;
+mod contrast;
 mod local;
+mod native;
 pub use casing::case_candidates;
+pub use native::typo_readings;
 mod personal;
-pub use local::LocalLlm;
+pub use local::{LocalConfigError, LocalLlm};
 pub use personal::PersonalModel;
 
 #[derive(Debug, Default)]
@@ -15,6 +19,7 @@ pub struct Model {
     trigrams: HashMap<(char, char, char), u32>,
     public: Vec<([u32; 3], u32)>,
     literature: Vec<([u32; 3], u32)>,
+    contrast_enabled: bool,
 }
 
 impl Model {
@@ -52,6 +57,7 @@ impl Model {
             model.literature =
                 Self::decode_public(include_bytes!("../../../models/context-literature.bin"))
                     .expect("validated bundled literary model");
+            model.contrast_enabled = true;
             model
         })
     }
@@ -177,10 +183,20 @@ impl Model {
         }
     }
     pub fn rerank(&self, context: &str, candidates: &mut Vec<Candidate>, limit: usize) {
+        let contrast_enabled =
+            self.contrast_enabled && !context.trim().is_empty() && contrast::applicable(candidates);
         for candidate in candidates.iter_mut() {
+            if self.contrast_enabled {
+                candidate.score += native::bonus(context, &candidate.surface);
+            }
             if !context.is_empty() || candidate.surface.chars().count() >= 3 {
                 candidate.score += self.score(context, &candidate.surface).min(4096);
                 candidate.score += Self::context_bonus(context, &candidate.surface);
+                if contrast_enabled && contrast::matches(&candidate.surface) {
+                    // Untrained alternatives retain their original scores.
+                    // Only trained-domain comparisons receive a bounded bonus.
+                    candidate.score += contrast::score(context, &candidate.surface) + 1536;
+                }
             }
         }
         rank(candidates, limit);
@@ -212,6 +228,7 @@ impl Model {
             &["会う", "合う"],
             &["撮る", "取る"],
             &["正規", "世紀"],
+            &["AI", "愛"],
         ];
         for family in FAMILIES {
             let selected = family.iter().find(|surface| {
@@ -255,6 +272,77 @@ impl Model {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn held_out_contrast_evaluation_preserves_candidate_text() {
+        let model = Model::bundled();
+        let mut before = 0;
+        let mut after = 0;
+        let mut total = 0;
+        for line in include_str!("../../../models/contrast-evaluation.tsv").lines() {
+            let fields: Vec<_> = line.split('\t').collect();
+            assert_eq!(fields.len(), 5);
+            let context = fields[2];
+            let good = fields[3];
+            let bad = fields[4];
+            let baseline = |text: &str| {
+                model.score(context, text).min(4096) + Model::context_bonus(context, text)
+            };
+            before += usize::from(baseline(good) > baseline(bad) + 100);
+            let mut candidates = vec![
+                Candidate {
+                    surface: good.into(),
+                    score: 0,
+                    segments: 1,
+                },
+                Candidate {
+                    surface: bad.into(),
+                    score: 100,
+                    segments: 1,
+                },
+            ];
+            model.rerank(context, &mut candidates, 2);
+            after += usize::from(candidates[0].surface == good);
+            assert_eq!(candidates.len(), 2);
+            assert!(
+                candidates
+                    .iter()
+                    .all(|c| c.surface == good || c.surface == bad)
+            );
+            total += 1;
+        }
+        println!(
+            "Synthetic held-out plus regression pairs: before={before}/{total}, after={after}/{total}; wrong candidate base advantage=100; not real-world IME accuracy"
+        );
+        assert!(
+            after > before,
+            "contrast training must improve this fixed evaluation"
+        );
+    }
+    #[test]
+    fn contrast_training_does_not_change_empty_context_ranking() {
+        let model = Model::bundled();
+        let mut candidates = vec![
+            Candidate {
+                surface: "AIによる".into(),
+                score: 100,
+                segments: 1,
+            },
+            Candidate {
+                surface: "愛による".into(),
+                score: 0,
+                segments: 1,
+            },
+        ];
+        let expected: Vec<_> = candidates
+            .iter()
+            .map(|c| c.score + model.score("", &c.surface).min(4096))
+            .collect();
+        model.rerank("", &mut candidates, 2);
+        for candidate in candidates {
+            let index = usize::from(candidate.surface == "愛による");
+            assert_eq!(candidate.score, expected[index]);
+        }
+    }
     #[test]
     fn previous_sentence_topics_survive_sentence_end_and_follow_topic_changes() {
         let model = Model::default();

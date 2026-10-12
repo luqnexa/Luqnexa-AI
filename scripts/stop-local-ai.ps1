@@ -1,5 +1,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 $ErrorActionPreference='Stop'
+$mirror='HKCU:\Software\Luqnexa\LocalAI'
+if (Test-Path -LiteralPath $mirror) {
+    Remove-ItemProperty -LiteralPath $mirror -Name 'Configuration' -ErrorAction SilentlyContinue
+}
+$runKey='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+if (Test-Path -LiteralPath $runKey) {
+    $startup=Get-ItemProperty -LiteralPath $runKey -Name 'LuqnexaLocalAI' -ErrorAction SilentlyContinue
+    if ($startup -and $startup.LuqnexaLocalAI.Contains((Join-Path $PSScriptRoot 'start-local-ai.ps1'))) {
+        Remove-ItemProperty -LiteralPath $runKey -Name 'LuqnexaLocalAI'
+    }
+}
 $root=Split-Path $PSScriptRoot -Parent
 $config=Join-Path $env:LOCALAPPDATA 'Luqnexa/local-ai.json'
 if (Test-Path -LiteralPath $config) {

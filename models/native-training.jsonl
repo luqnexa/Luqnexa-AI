@@ -1,0 +1,48 @@
+{"context": "", "good": "箸でご飯を食べる", "bad": "橋でご飯を食べる", "split": "train", "group": "train-0"}
+{"context": "", "good": "箸で食べる", "bad": "橋で食べる", "split": "train", "group": "train-1"}
+{"context": "", "good": "箸で麺を食べる", "bad": "橋で麺を食べる", "split": "train", "group": "train-2"}
+{"context": "", "good": "橋を渡る", "bad": "箸を渡る", "split": "train", "group": "train-3"}
+{"context": "", "good": "橋をわたる", "bad": "箸をわたる", "split": "train", "group": "train-4"}
+{"context": "", "good": "機械を使う", "bad": "機会を使う", "split": "train", "group": "train-5"}
+{"context": "", "good": "機会に恵まれた", "bad": "機械に恵まれた", "split": "train", "group": "train-6"}
+{"context": "", "good": "AIを愛用している", "bad": "愛を愛用している", "split": "train", "group": "train-7"}
+{"context": "", "good": "愛を大切にする", "bad": "AIを大切にする", "split": "train", "group": "train-8"}
+{"context": "", "good": "Pythonで書くほうがいい", "bad": "Pythonで描くほうがいい", "split": "train", "group": "train-9"}
+{"context": "", "good": "pythonで書くほうがいい", "bad": "pythonデカくほうがいい", "split": "train", "group": "train-10"}
+{"context": "", "good": "今日は曇りです", "bad": "脅迫盛りです", "split": "train", "group": "train-11"}
+{"context": "", "good": "今日は曇りです", "bad": "今日迫盛りです", "split": "train", "group": "train-12"}
+{"context": "", "good": "箸でご飯を食べる", "bad": "橋出ご飯を食べる", "split": "train", "group": "train-13"}
+{"context": "", "good": "箸でうどんを食べる", "bad": "橋でうどんを食べる", "split": "validation", "group": "validation-0"}
+{"context": "", "good": "大きな橋を渡る", "bad": "大きな箸を渡る", "split": "validation", "group": "validation-1"}
+{"context": "", "good": "便利な機械を使う", "bad": "便利な機会を使う", "split": "validation", "group": "validation-2"}
+{"context": "", "good": "明日は曇りです", "bad": "明日迫盛りです", "split": "validation", "group": "validation-3"}
+{"context": "", "good": "箸でそばを食べる", "bad": "橋でそばを食べる", "split": "test", "group": "test-0"}
+{"context": "", "good": "川の橋を渡る", "bad": "川の箸を渡る", "split": "test", "group": "test-1"}
+{"context": "", "good": "機会に恵まれました", "bad": "機械に恵まれました", "split": "test", "group": "test-2"}
+{"context": "", "good": "AIを愛用します", "bad": "愛を愛用します", "split": "test", "group": "test-3"}
+{"context": "", "good": "この愛を大切にする", "bad": "このAIを大切にする", "split": "test", "group": "test-4"}
+{"context": "", "good": "Pythonでコードを書くほうがいい", "bad": "Pythonでコードを描くほうがいい", "split": "test", "group": "test-5"}
+{"context": "", "good": "新しい機械を購入する", "bad": "新しい機会を購入する", "split": "train", "group": "user-suite-4"}
+{"context": "", "good": "機会に恵まれた", "bad": "機会に熱田", "split": "train", "group": "user-suite-5"}
+{"context": "", "good": "雨が降っている", "bad": "雨がふっている", "split": "train", "group": "user-suite-6"}
+{"context": "", "good": "飴を舐める", "bad": "雨をなめる", "split": "train", "group": "user-suite-7"}
+{"context": "", "good": "AIを研究する", "bad": "愛を研究する", "split": "train", "group": "user-suite-8"}
+{"context": "", "good": "愛を掴む", "bad": "愛をつかむ", "split": "train", "group": "user-suite-11"}
+{"context": "", "good": "最新の技術であるAIを掴む", "bad": "最新の技術であるわいをつかむ", "split": "train", "group": "user-suite-12"}
+{"context": "", "good": "今日は曇りです", "bad": "強迫 もりです", "split": "train", "group": "user-suite-13"}
+{"context": "", "good": "私は日本語が好きです", "bad": "ワタシハ日本語が好きです", "split": "train", "group": "user-suite-14"}
+{"context": "", "good": "明日は学校に行きます", "bad": "明日は学校新木ます", "split": "train", "group": "user-suite-15"}
+{"context": "", "good": "昨日買った本を読む", "bad": "昨日刈田 本を読む", "split": "train", "group": "user-suite-16"}
+{"context": "", "good": "この問題を解決する", "bad": "この 問題わ解決する", "split": "train", "group": "user-suite-17"}
+{"context": "", "good": "彼は長い話をした", "bad": "カレハ長い話をした", "split": "train", "group": "user-suite-18"}
+{"context": "", "good": "PythonでAIを作る", "bad": "python出会いをつくる", "split": "train", "group": "user-suite-19"}
+{"context": "", "good": "Rustでプログラムを書く", "bad": "rustでpろgらmを書く", "split": "train", "group": "user-suite-20"}
+{"context": "", "good": "GitHubにリポジトリを公開", "bad": "github煮れぽしとryを後悔", "split": "train", "group": "user-suite-21"}
+{"context": "", "good": "Windowsでアプリを開発", "bad": "windows出会っpを開発", "split": "train", "group": "user-suite-22"}
+{"context": "", "good": "CPUとGPUの性能を比べる", "bad": "cぷうとgぷうの性能を比べる", "split": "train", "group": "user-suite-23"}
+{"context": "", "good": "明日ソウルに行く", "bad": "明日背負うlに行く", "split": "train", "group": "user-suite-25"}
+{"context": "", "good": "bonjourってどういう意味", "bad": "盆城rって どういう意味", "split": "train", "group": "user-suite-26"}
+{"context": "", "good": "こんにちは", "bad": "小日は", "split": "train", "group": "user-suite-27"}
+{"context": "", "good": "ありがとうございます", "bad": "ありがとうございmす", "split": "train", "group": "user-suite-28"}
+{"context": "", "good": "PythonでAIを作る", "bad": "pythん で 愛をつくる", "split": "train", "group": "user-suite-29"}
+{"context": "", "good": "私はAIを勉強している", "bad": "ワタシハ 愛を勉強している", "split": "train", "group": "user-suite-30"}

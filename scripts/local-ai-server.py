@@ -187,11 +187,24 @@ def main():
         temporary = CONFIG.with_suffix('.tmp')
         temporary.write_text(json.dumps({'enabled': True, 'token': TOKEN}), encoding='utf-8')
         temporary.replace(CONFIG)
+        if os.name == 'nt':
+            import winreg
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r'Software\Luqnexa\LocalAI') as key:
+                winreg.SetValueEx(key, 'Configuration', 0, winreg.REG_SZ, json.dumps({
+                    'enabled': True, 'token': TOKEN, 'directory': str(CONFIG.parent.parent)}))
         (ROOT/'running.json').write_text(json.dumps({'pid': os.getpid(), 'runtime_pid': process.pid}), encoding='utf-8')
         threading.Thread(target=worker, daemon=True).start()
         print('Local AI ready (loopback only)', flush=True)
         bridge.serve_forever()
     finally:
+        if os.name == 'nt':
+            import winreg
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Luqnexa\LocalAI',
+                                    0, winreg.KEY_SET_VALUE) as key:
+                    winreg.DeleteValue(key, 'Configuration')
+            except OSError:
+                pass
         process.terminate()
         process.wait(timeout=10)
         runtime_log.close()
