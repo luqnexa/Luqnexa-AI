@@ -23,6 +23,11 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
       - run: cargo build --workspace --release --locked
+      - run: python scripts/train-native.py --check
+      - run: python scripts/test-import-chatgpt-lessons.py
+      - run: python scripts/test-learning-dashboard.py
+      - run: python scripts/test-app-learning.py
+      - run: python scripts/test-romaji-practice.py
       - run: python scripts/test-train-context.py
       - run: python scripts/test-train-literature.py
       - run: python -m unittest discover -s tests -p test_local_ai_server.py
