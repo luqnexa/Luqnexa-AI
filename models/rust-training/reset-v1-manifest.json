@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-10-13T06:34:29.802802+00:00",
+  "reset": "fresh Rust neural initialization; previous models preserved",
+  "source_hashes": {
+    "round-20261013-18.jsonl": "e80da4b9b224792981484789beae42405ce3e2a97d0b2804ddc0166866f05478",
+    "mixed-validation-v1.jsonl": "99f4cbf1ccb652ff9558813b9fb010e56eac1122469cdc5166700e5bdb399788",
+    "mixed-heldout-v1.jsonl": "46f918e50aa3f67baab20cb22c9545baaf246364750f2d520bc6cd57848dba8c"
+  },
+  "train": 24,
+  "validation": 12,
+  "test": 24,
+  "independently_reviewed": false,
+  "old_models_deleted": false,
+  "installed": false
+}

@@ -1,0 +1,168 @@
+{
+  "examples": 1000,
+  "surface_frames": 41,
+  "substitution_variants": 959,
+  "repeated_frames": [
+    {
+      "frame": "<EN>について調べる",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の使い方を覚える",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の資料を探す",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の設定を確認",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の名称を記録する",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の特徴を説明する",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の操作を試す",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の質問を考える",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の運用を検討する",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の概要を読む",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の値を確認",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の値を更新する",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の値を読み取る",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の名称を変える",
+      "count": 25
+    },
+    {
+      "frame": "<EN>を初期化する",
+      "count": 25
+    },
+    {
+      "frame": "<EN>を記録して保存",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の宣言を見る",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の参照を探す",
+      "count": 25
+    },
+    {
+      "frame": "<EN>を関数に渡す",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の比較を行う",
+      "count": 25
+    },
+    {
+      "frame": "<EN>をメモに書く",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の綴りを確認",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の意味を調べる",
+      "count": 25
+    },
+    {
+      "frame": "<EN>を発音する",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の発音を練習",
+      "count": 25
+    },
+    {
+      "frame": "<EN>を書いて残す",
+      "count": 25
+    },
+    {
+      "frame": "<EN>と書いた紙",
+      "count": 25
+    },
+    {
+      "frame": "<EN>を文章に入れる",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の読み方を聞く",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の仕様を調べる",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の名称を確認",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の意味を説明する",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の役割を覚える",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の資料を読む",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の質問をする",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の解説を聞く",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の名称をメモに残す",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の特徴を記録",
+      "count": 25
+    },
+    {
+      "frame": "<EN>の使用例を見る",
+      "count": 25
+    },
+    {
+      "frame": "<EN>と書いたメモ",
+      "count": 24
+    }
+  ],
+  "limits": "English slot replacement only. Different frames may still have the same intent; human-style semantic review is required."
+}

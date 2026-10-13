@@ -1,0 +1,6 @@
+{
+  "sha256": "99f4cbf1ccb652ff9558813b9fb010e56eac1122469cdc5166700e5bdb399788",
+  "examples": 12,
+  "purpose": "Validation-only model selection, fixed before training; NOT held-out test",
+  "training_allowed": false
+}

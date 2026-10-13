@@ -6,12 +6,23 @@ pub mod assist;
 mod casing;
 mod contrast;
 mod local;
+#[cfg(feature = "mobile-neural")]
+pub mod mobile;
 mod native;
 pub use casing::case_candidates;
 pub use native::typo_readings;
 mod personal;
 pub use local::{LocalConfigError, LocalLlm};
 pub use personal::PersonalModel;
+
+/// Identity of the bytes used by native ranking in this compiled binary.
+pub fn native_model_identity() -> (&'static str, &'static str, bool) {
+    (
+        env!("LUQNEXA_COMPILED_MODEL_SHA256"),
+        env!("LUQNEXA_COMPILED_ANCHORS_SHA256"),
+        cfg!(feature = "research-model"),
+    )
+}
 
 #[derive(Debug, Default)]
 pub struct Model {
@@ -182,13 +193,20 @@ impl Model {
                 }
         }
     }
+    /// Diagnostic contribution of the compiled native model; no mutation or I/O.
+    pub fn native_bonus(&self, context: &str, text: &str) -> i64 {
+        if self.contrast_enabled {
+            native::bonus(context, text)
+        } else {
+            0
+        }
+    }
+
     pub fn rerank(&self, context: &str, candidates: &mut Vec<Candidate>, limit: usize) {
         let contrast_enabled =
             self.contrast_enabled && !context.trim().is_empty() && contrast::applicable(candidates);
         for candidate in candidates.iter_mut() {
-            if self.contrast_enabled {
-                candidate.score += native::bonus(context, &candidate.surface);
-            }
+            candidate.score += self.native_bonus(context, &candidate.surface);
             if !context.is_empty() || candidate.surface.chars().count() >= 3 {
                 candidate.score += self.score(context, &candidate.surface).min(4096);
                 candidate.score += Self::context_bonus(context, &candidate.surface);

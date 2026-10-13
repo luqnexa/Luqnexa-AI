@@ -1,0 +1,32 @@
+name: Rust mobile model
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  rust-model:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo test -p luqnexa-ml --features trainer --locked
+      - run: cargo clippy -p luqnexa-ml --all-targets --features trainer --locked -- -D warnings
+      - run: cargo test -p nextime-ai --features mobile-neural --locked
+      - run: cargo run --release -p luqnexa-ml --features trainer --bin luqnexa-train -- --data models/rust-training/reset-v1.jsonl --output target/reset-run --epochs 200 --seed 1337
+      - run: cargo run --release -p luqnexa-ml --bin mobile-probe -- target/reset-run/model.lqml 2000
+  cross-check:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: aarch64-linux-android
+          - os: macos-latest
+            target: aarch64-apple-ios
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo check -p luqnexa-ml --lib --no-default-features --target ${{ matrix.target }} --locked

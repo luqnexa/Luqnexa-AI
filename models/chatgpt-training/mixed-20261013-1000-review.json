@@ -1,0 +1,15 @@
+{
+  "examples": 1000,
+  "category_counts": {
+    "proper_names": 250,
+    "identifiers": 250,
+    "english_literals": 250,
+    "acronyms": 250
+  },
+  "unique_inputs": 1000,
+  "unique_surfaces": 1000,
+  "templates": 41,
+  "sha256": "99ab4beecea6005fac98dcef1eeb53d0fb0506bf4298966c23599802b4ccee1d",
+  "independently_reviewed": false,
+  "limits": "Template combinations; not 1,000 independent semantic situations. Wrong alternatives are spelling/case substitutions, not free generation."
+}

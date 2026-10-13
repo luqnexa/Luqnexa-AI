@@ -1,0 +1,142 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+use super::*;
+pub struct Trainer {
+    embeddings: Box<[[f32; EMBEDDING]]>,
+    hidden: [[f32; INPUT]; HIDDEN],
+    biases: [f32; HIDDEN],
+    output: [f32; HIDDEN],
+}
+struct Forward {
+    features: Features,
+    input: [f32; INPUT],
+    hidden: [f32; HIDDEN],
+    score: f32,
+}
+impl Trainer {
+    /// A fresh deterministic initialization, never an implicit warm start.
+    pub fn new(seed: u64) -> Self {
+        let mut state = seed.max(1);
+        let mut random = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            ((state >> 40) as f32 / ((1_u32 << 24) as f32) * 2.0 - 1.0) * 0.1
+        };
+        let embeddings = (0..BUCKETS)
+            .map(|_| std::array::from_fn(|_| random()))
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        let hidden = std::array::from_fn(|_| std::array::from_fn(|_| random()));
+        let output = std::array::from_fn(|_| random());
+        Self {
+            embeddings,
+            hidden,
+            biases: [0.0; HIDDEN],
+            output,
+        }
+    }
+    fn forward(&self, reading: &str, context: &str, surface: &str) -> Forward {
+        let features = Features::new(reading, context, surface);
+        let mut input = [0.0; INPUT];
+        for channel in 0..3 {
+            let n = features.lengths[channel];
+            for &id in &features.ids[channel][..n] {
+                for i in 0..EMBEDDING {
+                    input[channel * EMBEDDING + i] +=
+                        self.embeddings[usize::from(id)][i] / n as f32;
+                }
+            }
+        }
+        let hidden = std::array::from_fn(|j| {
+            (self.biases[j]
+                + self.hidden[j]
+                    .iter()
+                    .zip(input)
+                    .map(|(w, x)| w * x)
+                    .sum::<f32>())
+            .max(0.0)
+        });
+        let score = hidden.iter().zip(self.output).map(|(x, w)| x * w).sum();
+        Forward {
+            features,
+            input,
+            hidden,
+            score,
+        }
+    }
+    pub fn loss(&self, reading: &str, context: &str, good: &str, bad: &str) -> f32 {
+        let delta =
+            self.forward(reading, context, good).score - self.forward(reading, context, bad).score;
+        (-delta).max(0.0) + (-delta.abs()).exp().ln_1p()
+    }
+    pub fn learn(
+        &mut self,
+        reading: &str,
+        context: &str,
+        good: &str,
+        bad: &str,
+        rate: f32,
+    ) -> Result<(), &'static str> {
+        if !rate.is_finite() || !(0.0..=1.0).contains(&rate) || rate == 0.0 || good == bad {
+            return Err("invalid training sample or learning rate");
+        }
+        let a = self.forward(reading, context, good);
+        let b = self.forward(reading, context, bad);
+        let gradient = -1.0 / (1.0 + (a.score - b.score).clamp(-30.0, 30.0).exp());
+        let mut ga = [0.0; HIDDEN];
+        let mut gb = [0.0; HIDDEN];
+        let mut ia = [0.0; INPUT];
+        let mut ib = [0.0; INPUT];
+        for j in 0..HIDDEN {
+            ga[j] = if a.hidden[j] > 0.0 {
+                gradient * self.output[j]
+            } else {
+                0.0
+            };
+            gb[j] = if b.hidden[j] > 0.0 {
+                -gradient * self.output[j]
+            } else {
+                0.0
+            };
+            for i in 0..INPUT {
+                ia[i] += ga[j] * self.hidden[j][i];
+                ib[i] += gb[j] * self.hidden[j][i];
+            }
+        }
+        for j in 0..HIDDEN {
+            for i in 0..INPUT {
+                self.hidden[j][i] -=
+                    rate * (ga[j] * a.input[i] + gb[j] * b.input[i]).clamp(-1.0, 1.0);
+            }
+            self.biases[j] -= rate * (ga[j] + gb[j]).clamp(-1.0, 1.0);
+            self.output[j] -= rate * (gradient * (a.hidden[j] - b.hidden[j])).clamp(-1.0, 1.0);
+        }
+        for (pass, input_gradient) in [(&a, ia), (&b, ib)] {
+            for channel in 0..3 {
+                let n = pass.features.lengths[channel];
+                for &id in &pass.features.ids[channel][..n] {
+                    for i in 0..EMBEDDING {
+                        self.embeddings[usize::from(id)][i] -= rate
+                            * input_gradient[channel * EMBEDDING + i].clamp(-1.0, 1.0)
+                            / n as f32;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+    pub fn quantize(&self) -> Model {
+        Model {
+            embeddings: self
+                .embeddings
+                .iter()
+                .map(Row::quantize)
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+            hidden: std::array::from_fn(|j| Row::quantize(&self.hidden[j])),
+            biases: self.biases,
+            output: Row::quantize(&self.output),
+            output_bias: 0.0,
+        }
+    }
+}

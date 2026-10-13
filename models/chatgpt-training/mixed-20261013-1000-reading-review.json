@@ -1,0 +1,270 @@
+{
+  "rows_checked": 1000,
+  "suffix_reading_checks": [
+    {
+      "input": "nitsuiteshiraberu",
+      "expected": "についてしらべる",
+      "actual": "についてしらべる",
+      "matches": true
+    },
+    {
+      "input": "notukaikatawooboeru",
+      "expected": "のつかいかたをおぼえる",
+      "actual": "のつかいかたをおぼえる",
+      "matches": true
+    },
+    {
+      "input": "noshiryouwosagasu",
+      "expected": "のしりょうをさがす",
+      "actual": "のしりょうをさがす",
+      "matches": true
+    },
+    {
+      "input": "nosetteiwokakunin",
+      "expected": "のせっていをかくにん",
+      "actual": "のせっていをかくにん",
+      "matches": true
+    },
+    {
+      "input": "nomeishouwokirokusuru",
+      "expected": "のめいしょうをきろくする",
+      "actual": "のめいしょうをきろくする",
+      "matches": true
+    },
+    {
+      "input": "notokuchouwosetsumeisuru",
+      "expected": "のとくちょうをせつめいする",
+      "actual": "のとくちょうをせつめいする",
+      "matches": true
+    },
+    {
+      "input": "nosousawotamesu",
+      "expected": "のそうさをためす",
+      "actual": "のそうさをためす",
+      "matches": true
+    },
+    {
+      "input": "noshitsumonwokangaeru",
+      "expected": "のしつもんをかんがえる",
+      "actual": "のしつもんをかんがえる",
+      "matches": true
+    },
+    {
+      "input": "noun'youwokentousuru",
+      "expected": "のうんようをけんとうする",
+      "actual": "のうんようをけんとうする",
+      "matches": true
+    },
+    {
+      "input": "nogaiyouwoyomu",
+      "expected": "のがいようをよむ",
+      "actual": "のがいようをよむ",
+      "matches": true
+    },
+    {
+      "input": "nokaisetsuwosagasu",
+      "expected": "のかいせつをさがす",
+      "actual": "のかいせつをさがす",
+      "matches": true
+    },
+    {
+      "input": "noataiwokakunin",
+      "expected": "のあたいをかくにん",
+      "actual": "のあたいをかくにん",
+      "matches": true
+    },
+    {
+      "input": "noataiwokoushinsuru",
+      "expected": "のあたいをこうしんする",
+      "actual": "のあたいをこうしんする",
+      "matches": true
+    },
+    {
+      "input": "noataiwoyomitoru",
+      "expected": "のあたいをよみとる",
+      "actual": "のあたいをよみとる",
+      "matches": true
+    },
+    {
+      "input": "nomeishouwokaeru",
+      "expected": "のめいしょうをかえる",
+      "actual": "のめいしょうをかえる",
+      "matches": true
+    },
+    {
+      "input": "woshokikasuru",
+      "expected": "をしょきかする",
+      "actual": "をしょきかする",
+      "matches": true
+    },
+    {
+      "input": "wokirokushitehozon",
+      "expected": "をきろくしてほぞん",
+      "actual": "をきろくしてほぞん",
+      "matches": true
+    },
+    {
+      "input": "nosengenwomiru",
+      "expected": "のせんげんをみる",
+      "actual": "のせんげんをみる",
+      "matches": true
+    },
+    {
+      "input": "nosanshouwosagasu",
+      "expected": "のさんしょうをさがす",
+      "actual": "のさんしょうをさがす",
+      "matches": true
+    },
+    {
+      "input": "wokansuuniwatasu",
+      "expected": "をかんすうにわたす",
+      "actual": "をかんすうにわたす",
+      "matches": true
+    },
+    {
+      "input": "nohikakuwookonau",
+      "expected": "のひかくをおこなう",
+      "actual": "のひかくをおこなう",
+      "matches": true
+    },
+    {
+      "input": "noimiwosetsumeisuru",
+      "expected": "のいみをせつめいする",
+      "actual": "のいみをせつめいする",
+      "matches": true
+    },
+    {
+      "input": "tokaitamemo",
+      "expected": "とかいためも",
+      "actual": "とかいためも",
+      "matches": true
+    },
+    {
+      "input": "womemonikaku",
+      "expected": "をめもにかく",
+      "actual": "をめもにかく",
+      "matches": true
+    },
+    {
+      "input": "notsuduriwokakunin",
+      "expected": "のつづりをかくにん",
+      "actual": "のつづりをかくにん",
+      "matches": true
+    },
+    {
+      "input": "noimiwoshiraberu",
+      "expected": "のいみをしらべる",
+      "actual": "のいみをしらべる",
+      "matches": true
+    },
+    {
+      "input": "wohatsuonsuru",
+      "expected": "をはつおんする",
+      "actual": "をはつおんする",
+      "matches": true
+    },
+    {
+      "input": "nohatsuonworenshuu",
+      "expected": "のはつおんをれんしゅう",
+      "actual": "のはつおんをれんしゅう",
+      "matches": true
+    },
+    {
+      "input": "wokaitenokosu",
+      "expected": "をかいてのこす",
+      "actual": "をかいてのこす",
+      "matches": true
+    },
+    {
+      "input": "tokaitakami",
+      "expected": "とかいたかみ",
+      "actual": "とかいたかみ",
+      "matches": true
+    },
+    {
+      "input": "wobunshouniireru",
+      "expected": "をぶんしょうにいれる",
+      "actual": "をぶんしょうにいれる",
+      "matches": true
+    },
+    {
+      "input": "noyomikatawokiku",
+      "expected": "のよみかたをきく",
+      "actual": "のよみかたをきく",
+      "matches": true
+    },
+    {
+      "input": "woreibunniireru",
+      "expected": "をれいぶんにいれる",
+      "actual": "をれいぶんにいれる",
+      "matches": true
+    },
+    {
+      "input": "noshiyouwoshiraberu",
+      "expected": "のしようをしらべる",
+      "actual": "のしようをしらべる",
+      "matches": true
+    },
+    {
+      "input": "nomeishouwokakunin",
+      "expected": "のめいしょうをかくにん",
+      "actual": "のめいしょうをかくにん",
+      "matches": true
+    },
+    {
+      "input": "noimiwosetsumeisuru",
+      "expected": "のいみをせつめいする",
+      "actual": "のいみをせつめいする",
+      "matches": true
+    },
+    {
+      "input": "noyakuwariwooboeru",
+      "expected": "のやくわりをおぼえる",
+      "actual": "のやくわりをおぼえる",
+      "matches": true
+    },
+    {
+      "input": "noshiryouwoyomu",
+      "expected": "のしりょうをよむ",
+      "actual": "のしりょうをよむ",
+      "matches": true
+    },
+    {
+      "input": "noshitsumonwosuru",
+      "expected": "のしつもんをする",
+      "actual": "のしつもんをする",
+      "matches": true
+    },
+    {
+      "input": "nokaisetsuwokiku",
+      "expected": "のかいせつをきく",
+      "actual": "のかいせつをきく",
+      "matches": true
+    },
+    {
+      "input": "nomeishouwomemoninokosu",
+      "expected": "のめいしょうをめもにのこす",
+      "actual": "のめいしょうをめもにのこす",
+      "matches": true
+    },
+    {
+      "input": "notokuchouwokiroku",
+      "expected": "のとくちょうをきろく",
+      "actual": "のとくちょうをきろく",
+      "matches": true
+    },
+    {
+      "input": "noshiyoureiwomiru",
+      "expected": "のしようれいをみる",
+      "actual": "のしようれいをみる",
+      "matches": true
+    },
+    {
+      "input": "nokijutsuwosagasu",
+      "expected": "のきじゅつをさがす",
+      "actual": "のきじゅつをさがす",
+      "matches": true
+    }
+  ],
+  "english_spans": "All exact vocabulary spans structurally checked; canonical spelling/case and each Japanese frame inspected by assistant, not independent human verification"
+}

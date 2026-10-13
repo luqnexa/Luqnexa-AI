@@ -2,9 +2,25 @@
 //! Luqnexa's bounded discriminative model, trained locally from authored pairs.
 use std::sync::OnceLock;
 
+#[cfg(not(feature = "research-model"))]
+const MODEL: &[u8] = include_bytes!("../../../models/native-model.bin");
+#[cfg(feature = "research-model")]
+const MODEL: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/research-model.bin"));
+#[cfg(not(feature = "research-model"))]
+const ANCHORS: &str = include_str!("../../../models/native-anchors.tsv");
+#[cfg(feature = "research-model")]
+const ANCHORS: &str = include_str!(concat!(env!("OUT_DIR"), "/research-anchors.tsv"));
+
 pub fn bonus(context: &str, text: &str) -> i64 {
     // Restrict new weights to reviewed lexical domains. No text generation.
-    let matches = include_str!("../../../models/native-anchors.tsv")
+    // New contextual anchors must not broaden context-free corrections. Keep
+    // the original domain when no preceding sentence was supplied.
+    let anchors = if cfg!(feature = "research-model") && context.trim().is_empty() {
+        include_str!("../../../models/native-anchors.tsv")
+    } else {
+        ANCHORS
+    };
+    let matches = anchors
         .lines()
         .filter_map(|line| line.split_once('\t'))
         .any(|(a, b)| text.contains(a) || text.contains(b));
@@ -12,10 +28,8 @@ pub fn bonus(context: &str, text: &str) -> i64 {
         return 0;
     }
     static WEIGHTS: OnceLock<Vec<i16>> = OnceLock::new();
-    let weights = WEIGHTS.get_or_init(|| {
-        super::contrast::decode(include_bytes!("../../../models/native-model.bin"))
-            .expect("validated native model")
-    });
+    let weights =
+        WEIGHTS.get_or_init(|| super::contrast::decode(MODEL).expect("validated native model"));
     let counts = super::contrast::counts(context, text);
     let norm = counts
         .iter()

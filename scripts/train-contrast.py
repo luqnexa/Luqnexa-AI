@@ -84,10 +84,17 @@ def read_records(path):
         if row['group'] in groups and groups[row['group']] != row['split']:
             raise ValueError('Group leakage across partitions')
         groups[row['group']] = row['split']
+        margin=row.get('score_margin',0.0)
+        if not isinstance(margin,(int,float)) or not math.isfinite(margin) or not 0<=margin<=4:
+            raise ValueError('Invalid runtime score margin')
+        if margin and row['split']!='train':raise ValueError('Runtime score targets are training-only')
     return rows
 
 
-def fit(rows, epochs=180):
+def fit(rows, epochs=180, initial_weights=None, anchor_strength=0.0, optimizer='sgd'):
+    if optimizer not in ('sgd','adagrad'):raise ValueError('Unknown optimizer')
+    if not isinstance(anchor_strength,(int,float)) or not math.isfinite(anchor_strength) or not 0<=anchor_strength<=2:
+        raise ValueError('Anchor strength must be finite and between 0 and 2')
     training = [r for r in rows if r['split'] == 'train']
     validation = [r for r in rows if r['split'] == 'validation']
     if not training or not validation:
@@ -99,22 +106,40 @@ def fit(rows, epochs=180):
             raise ValueError('Invalid training weight')
         good = features(row['context'], row['good'])
         bad = features(row['context'], row['bad'])
-        differences.append((sample_weight,{key: good.get(key, 0)-bad.get(key, 0) for key in good.keys() | bad.keys()}))
-    weights = [0.0] * DIM
+        differences.append((sample_weight,row.get('score_margin',0.0),{key: good.get(key, 0)-bad.get(key, 0) for key in good.keys() | bad.keys()}))
+    if initial_weights is not None and (len(initial_weights)!=DIM or any(not math.isfinite(x) for x in initial_weights)):
+        raise ValueError('Invalid initial model weights')
+    weights = list(initial_weights) if initial_weights is not None else [0.0] * DIM
+    prior = list(initial_weights) if initial_weights is not None and anchor_strength else None
+    accumulated=[0.0]*DIM
     best = weights[:]
-    best_key = (-1, float('-inf'))
+    def validation_key(candidate):
+        result = evaluate(candidate, validation)
+        loss = sum(math.log1p(math.exp(-max(-40, min(40,
+                   score(candidate, r['context'], r['good'])-score(candidate, r['context'], r['bad'])))))
+                   for r in validation)
+        return result['wins'], -loss
+
+    # A warm start is itself a valid checkpoint. Never force an update that
+    # worsens the validation objective just because epoch zero was omitted.
+    best_key = validation_key(weights)
     selected_epoch = 0
     for epoch in range(1, epochs + 1):
-        for sample_weight,difference in differences:
-            margin = sum(weights[key] * value for key, value in difference.items())
+        for sample_weight,target_margin,difference in differences:
+            margin = sum(weights[key] * value for key, value in difference.items())-target_margin
             gradient = sample_weight * 0.25 / (1 + math.exp(min(margin, 40)))
             for key, value in difference.items():
-                weights[key] += gradient * value - sample_weight * 0.0001 * weights[key]
-        result = evaluate(weights, validation)
-        loss = sum(math.log1p(math.exp(-max(-40, min(40,
-                   score(weights, r['context'], r['good'])-score(weights, r['context'], r['bad'])))))
-                   for r in validation)
-        key = (result['wins'], -loss)
+                target = prior[key] if prior is not None else 0.0
+                update=gradient * value - sample_weight * 0.0001 * (weights[key]-target)
+                if optimizer=='adagrad':
+                    accumulated[key]+=update*update
+                    update/=math.sqrt(accumulated[key])+0.1
+                weights[key] += update
+        if prior is not None:
+            # One full-vector pull per epoch: retention must not depend on how
+            # often a hash slot occurred in word-substitution duplicates.
+            weights=[base+(value-base)*(1-0.25*anchor_strength) for base,value in zip(prior,weights)]
+        key = validation_key(weights)
         if key > best_key:
             best_key, best, selected_epoch = key, weights[:], epoch
     return best, selected_epoch

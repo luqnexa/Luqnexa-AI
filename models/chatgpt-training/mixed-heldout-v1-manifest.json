@@ -1,0 +1,6 @@
+{
+  "sha256": "46f918e50aa3f67baab20cb22c9545baaf246364750f2d520bc6cd57848dba8c",
+  "examples": 24,
+  "training_allowed": false,
+  "purpose": "Fixed Japanese-English candidate and isolated native conversion check; strict top-one exact match; synthetic, not independent real-world accuracy"
+}

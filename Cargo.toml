@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/nextime-ai", "crates/nextime-ranker"]
+members = ["crates/luqnexa-ml", "crates/nextime-ai", "crates/nextime-ranker"]
 
 [workspace.package]
 version = "0.1.0"
@@ -15,3 +15,6 @@ codegen-units = 1
 [workspace.dependencies]
 nextime-ai = { path = "crates/nextime-ai" }
 nextime-ranker = { path = "crates/nextime-ranker" }
+
+serde_json = "=1.0.140"
+sha2 = "0.10.9"

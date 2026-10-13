@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Common lexical annotations for productive morphology, not sentence training.
+なる	鳴る	godan
+けす	消す	godan
+およぐ	泳ぐ	godan
+すてる	捨てる	ichidan
+あやまる	謝る	godan
+よぶ	呼ぶ	godan
+あける	開ける	ichidan
+しめる	閉める	ichidan
+おきる	起きる	ichidan
+ねる	寝る	ichidan
+はじめる	始める	ichidan
+おわる	終わる	godan
+かつ	勝つ	godan
+まける	負ける	ichidan
+もどる	戻る	godan
+だす	出す	godan
+でる	出る	ichidan
+はいる	入る	godan
+とめる	止める	ichidan
+たす	足す	godan
+ひく	引く	godan
+はしる	走る	godan
+あるく	歩く	godan
+かす	貸す	godan
