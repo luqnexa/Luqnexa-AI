@@ -101,6 +101,28 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
         b"LQML0002"
     );
     assert_eq!(&before[..8], b"LQML0001");
+    let grouped = directory.join("grouped-run");
+    let result = Command::new(env!("CARGO_BIN_EXE_luqnexa-train"))
+        .args([
+            "--data",
+            data.to_str().unwrap(),
+            "--output",
+            grouped.to_str().unwrap(),
+            "--epochs",
+            "2",
+            "--schedule",
+            "grouped-shuffled",
+        ])
+        .output()
+        .unwrap();
+    assert!(result.status.success());
+    let report: serde_json::Value =
+        serde_json::from_slice(&fs::read(grouped.join("report.json")).unwrap()).unwrap();
+    // Validation and test rows never become learning groups.
+    assert_eq!(report["training_sentence_context_groups"], 1);
+    assert_eq!(report["largest_group_pairs"], 1);
+    assert_eq!(report["gradient_updates"], 2);
+    assert_eq!(report["schedule"], "grouped-shuffled");
     assert!(!run().status.success());
     assert_eq!(fs::read(output.join("model.lqml")).unwrap(), before);
     let bad_output = directory.join("bad-run");
@@ -130,6 +152,10 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
         fs::remove_file(experimental.join(file)).unwrap();
     }
     fs::remove_dir(experimental).unwrap();
+    for file in ["model.lqml", "report.json", "training-trace.json"] {
+        fs::remove_file(grouped.join(file)).unwrap();
+    }
+    fs::remove_dir(grouped).unwrap();
     fs::remove_file(data).unwrap();
     fs::remove_file(audit_data).unwrap();
     fs::remove_dir(directory).unwrap();

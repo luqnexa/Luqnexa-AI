@@ -24,6 +24,34 @@ fn shuffle(order: &mut [usize], state: &mut u64) {
         order.swap(i, (*state as usize) % (i + 1));
     }
 }
+// Preserve first-occurrence order; HashMap iteration never controls training.
+fn sentence_groups(train: &[&Sample]) -> Vec<Vec<usize>> {
+    let mut index = HashMap::new();
+    let mut groups = Vec::<Vec<usize>>::new();
+    for (i, row) in train.iter().enumerate() {
+        let next = groups.len();
+        let group = *index
+            .entry((row.input.as_str(), row.context.as_str()))
+            .or_insert(next);
+        if group == groups.len() {
+            groups.push(Vec::new());
+        }
+        groups[group].push(i);
+    }
+    groups
+}
+fn grouped_epoch(
+    groups: &[Vec<usize>],
+    order: &mut [usize],
+    epoch: usize,
+    seed: &mut u64,
+) -> Vec<usize> {
+    shuffle(order, seed);
+    order
+        .iter()
+        .map(|&group| groups[group][(epoch - 1) % groups[group].len()])
+        .collect()
+}
 fn metric(model: &Model, rows: &[Sample], split: &str) -> (usize, usize, f32) {
     let mut wins = 0;
     let mut n = 0;
@@ -44,7 +72,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut epochs = 200_usize;
     let mut seed = 1337_u64;
     let mut interaction = false;
-    let mut shuffled = false;
+    let mut schedule = "cyclic";
     let mut epoch_decay = 0.0_f32;
     while let Some(arg) = args.next() {
         let value = args.next().ok_or("option needs a value")?;
@@ -55,10 +83,11 @@ fn run() -> Result<(), Box<dyn Error>> {
             "--seed" => seed = value.parse()?,
             "--epoch-weight-decay" => epoch_decay = value.parse()?,
             "--schedule" => {
-                shuffled = match value.as_str() {
-                    "cyclic" => false,
-                    "shuffled" => true,
-                    _ => return Err("schedule must be cyclic or shuffled".into()),
+                schedule = match value.as_str() {
+                    "cyclic" => "cyclic",
+                    "shuffled" => "shuffled",
+                    "grouped-shuffled" => "grouped-shuffled",
+                    _ => return Err("schedule must be cyclic, shuffled or grouped-shuffled".into()),
                 }
             }
             "--architecture" => {
@@ -153,17 +182,28 @@ fn run() -> Result<(), Box<dyn Error>> {
         .filter(|r| r.split == "train")
         .collect::<Vec<_>>();
     let mut order: Vec<_> = (0..train.len()).collect();
+    let groups = sentence_groups(&train);
+    let mut group_order: Vec<_> = (0..groups.len()).collect();
     let mut order_seed = (seed ^ 0x9e3779b97f4a7c15).max(1);
     for epoch in 1..=epochs {
-        if shuffled {
+        if schedule == "shuffled" {
             shuffle(&mut order, &mut order_seed);
         }
-        for offset in 0..train.len() {
-            let row = train[if shuffled {
-                order[offset]
-            } else {
-                (offset + epoch) % train.len()
-            }];
+        let epoch_rows = if schedule == "grouped-shuffled" {
+            grouped_epoch(&groups, &mut group_order, epoch, &mut order_seed)
+        } else {
+            (0..train.len())
+                .map(|offset| {
+                    if schedule == "shuffled" {
+                        order[offset]
+                    } else {
+                        (offset + epoch) % train.len()
+                    }
+                })
+                .collect()
+        };
+        for row_index in epoch_rows {
+            let row = train[row_index];
             trainer.learn(&row.input, &row.context, &row.good, &row.bad, 0.1)?;
         }
         trainer.decay_weights(epoch_decay)?;
@@ -224,7 +264,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let report = json!({"architecture":architecture, "format":std::str::from_utf8(&best[..8])?, "implementation":"Rust training and int8 runtime; no external model", "seed":seed,"epochs":epochs,"selected_epoch":selected,"fresh_initialization":true,"warm_start":false,
         "selection":"validation only; test evaluated after selection", "model_bytes":MODEL_BYTES,"resident_bytes":model.resident_bytes(),"model_sha256":format!("{:x}",Sha256::digest(&best)),"dataset_sha256":format!("{:x}",Sha256::digest(&raw)),"seconds":started.elapsed().as_secs_f64(),"before":before,"after":after,
         "installed":false,"network_used":false,"limits":"Synthetic candidate-pair evaluation, not full IME accuracy. Bounded mean-pooled character features, not general text generation. No A13 or phone measurement."});
-    let report = report_with_schedule(&report, shuffled, epoch_decay);
+    let report = report_with_schedule(&report, schedule, epoch_decay, &groups, epochs);
     fs::write(
         output.join("report.json"),
         serde_json::to_vec_pretty(&report)?,
@@ -232,11 +272,31 @@ fn run() -> Result<(), Box<dyn Error>> {
     println!("{report}");
     Ok(())
 }
-fn report_with_schedule(report: &Value, shuffled: bool, epoch_decay: f32) -> Value {
+fn report_with_schedule(
+    report: &Value,
+    schedule: &str,
+    epoch_decay: f32,
+    groups: &[Vec<usize>],
+    epochs: usize,
+) -> Value {
     let mut report = report.clone();
-    report["schedule"] = json!(if shuffled { "shuffled" } else { "cyclic" });
+    report["schedule"] = json!(schedule);
     report["epoch_weight_decay"] = json!(epoch_decay);
-    report["epoch_coverage"] = json!("Every training example exactly once; no evaluation sampling");
+    report["epoch_coverage"] = json!(if schedule == "grouped-shuffled" {
+        "Each input/context group once; negative contrasts rotate; no evaluation sampling"
+    } else {
+        "Every training example exactly once; no evaluation sampling"
+    });
+    report["training_sentence_context_groups"] = json!(groups.len());
+    report["largest_group_pairs"] = json!(groups.iter().map(Vec::len).max().unwrap_or(0));
+    report["gradient_updates"] = json!(
+        epochs
+            * if schedule == "grouped-shuffled" {
+                groups.len()
+            } else {
+                groups.iter().map(Vec::len).sum()
+            }
+    );
     report
 }
 fn main() {
@@ -249,6 +309,55 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn grouped_epochs_balance_sentences_rotate_all_contrasts_and_are_reproducible() {
+        let groups = vec![vec![0], vec![1, 2, 3], vec![4, 5]];
+        let mut order_a = vec![0, 1, 2];
+        let mut order_b = order_a.clone();
+        let mut seed_a = 37;
+        let mut seed_b = 37;
+        let mut seen = HashSet::new();
+        let mut visits = [0; 3];
+        for epoch in 1..=6 {
+            let a = grouped_epoch(&groups, &mut order_a, epoch, &mut seed_a);
+            assert_eq!(a, grouped_epoch(&groups, &mut order_b, epoch, &mut seed_b));
+            assert_eq!(a.len(), 3);
+            for row in a {
+                seen.insert(row);
+                let group = groups.iter().position(|g| g.contains(&row)).unwrap();
+                visits[group] += 1;
+            }
+        }
+        assert_eq!(visits, [6, 6, 6]);
+        assert_eq!(seen.len(), 6);
+        let samples = [
+            Sample {
+                input: "same".into(),
+                context: "one".into(),
+                good: "x".into(),
+                bad: "y".into(),
+                split: "train".into(),
+            },
+            Sample {
+                input: "same".into(),
+                context: "two".into(),
+                good: "y".into(),
+                bad: "x".into(),
+                split: "train".into(),
+            },
+            Sample {
+                input: "same".into(),
+                context: "one".into(),
+                good: "x".into(),
+                bad: "z".into(),
+                split: "train".into(),
+            },
+        ];
+        assert_eq!(
+            sentence_groups(&samples.iter().collect::<Vec<_>>()),
+            vec![vec![0, 2], vec![1]]
+        );
+    }
     #[test]
     fn shuffled_epochs_cover_each_example_once_and_repeat_from_the_same_seed() {
         let mut a: Vec<_> = (0..72).collect();
