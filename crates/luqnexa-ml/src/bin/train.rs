@@ -11,6 +11,7 @@ use std::{
 };
 struct Sample {
     input: String,
+    group_input: Option<String>,
     context: String,
     good: String,
     bad: String,
@@ -31,7 +32,10 @@ fn sentence_groups(train: &[&Sample]) -> Vec<Vec<usize>> {
     for (i, row) in train.iter().enumerate() {
         let next = groups.len();
         let group = *index
-            .entry((row.input.as_str(), row.context.as_str()))
+            .entry((
+                row.group_input.as_deref().unwrap_or(&row.input),
+                row.context.as_str(),
+            ))
             .or_insert(next);
         if group == groups.len() {
             groups.push(Vec::new());
@@ -134,6 +138,10 @@ fn run() -> Result<(), Box<dyn Error>> {
         };
         let row = Sample {
             input: field("input")?,
+            group_input: value
+                .get("group_input")
+                .map(|_| field("group_input"))
+                .transpose()?,
             context: field("context")?,
             good: field("good")?,
             bad: field("bad")?,
@@ -159,6 +167,22 @@ fn run() -> Result<(), Box<dyn Error>> {
         rows.push(row);
         if rows.len() > 10_000 {
             return Err("too many rows".into());
+        }
+    }
+    // Augmented typos must point to a real, unaugmented training sentence with
+    // the same context and answer. Evaluation rows cannot be learning parents.
+    let parents: HashSet<_> = rows
+        .iter()
+        .filter(|r| r.split == "train" && r.group_input.is_none())
+        .map(|r| (r.input.as_str(), r.context.as_str(), r.good.as_str()))
+        .collect();
+    for row in &rows {
+        if let Some(parent) = row.group_input.as_deref() {
+            if row.split != "train"
+                || !parents.contains(&(parent, row.context.as_str(), row.good.as_str()))
+            {
+                return Err("invalid augmentation parent; requires matching training input, context and answer".into());
+            }
         }
     }
     for split in ["train", "validation", "test"] {
@@ -333,6 +357,7 @@ mod tests {
         let samples = [
             Sample {
                 input: "same".into(),
+                group_input: None,
                 context: "one".into(),
                 good: "x".into(),
                 bad: "y".into(),
@@ -340,6 +365,7 @@ mod tests {
             },
             Sample {
                 input: "same".into(),
+                group_input: None,
                 context: "two".into(),
                 good: "y".into(),
                 bad: "x".into(),
@@ -347,6 +373,7 @@ mod tests {
             },
             Sample {
                 input: "same".into(),
+                group_input: None,
                 context: "one".into(),
                 good: "x".into(),
                 bad: "z".into(),
@@ -356,6 +383,18 @@ mod tests {
         assert_eq!(
             sentence_groups(&samples.iter().collect::<Vec<_>>()),
             vec![vec![0, 2], vec![1]]
+        );
+        let augmented = Sample {
+            input: "typo".into(),
+            group_input: Some("same".into()),
+            context: "one".into(),
+            good: "x".into(),
+            bad: "typed".into(),
+            split: "train".into(),
+        };
+        assert_eq!(
+            sentence_groups(&[&samples[0], &augmented, &samples[1]]),
+            vec![vec![0, 1], vec![2]]
         );
     }
     #[test]

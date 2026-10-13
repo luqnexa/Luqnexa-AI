@@ -123,6 +123,52 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
     assert_eq!(report["largest_group_pairs"], 1);
     assert_eq!(report["gradient_updates"], 2);
     assert_eq!(report["schedule"], "grouped-shuffled");
+    let augmentation_data = directory.join("augmentation.jsonl");
+    let augmentation_run = directory.join("augmentation-run");
+    let noisy = r#"{"input":"hasgi","group_input":"hashi","context":"","good":"箸","bad":"hasgi","split":"train"}"#;
+    fs::write(&augmentation_data, format!("{}\n{noisy}", rows.join("\n"))).unwrap();
+    let augment = || {
+        Command::new(env!("CARGO_BIN_EXE_luqnexa-train"))
+            .args([
+                "--data",
+                augmentation_data.to_str().unwrap(),
+                "--output",
+                augmentation_run.to_str().unwrap(),
+                "--epochs",
+                "2",
+                "--schedule",
+                "grouped-shuffled",
+            ])
+            .output()
+            .unwrap()
+    };
+    assert!(augment().status.success());
+    let report: serde_json::Value =
+        serde_json::from_slice(&fs::read(augmentation_run.join("report.json")).unwrap()).unwrap();
+    assert_eq!(report["training_sentence_context_groups"], 1);
+    assert_eq!(report["largest_group_pairs"], 2);
+    assert_eq!(report["gradient_updates"], 2);
+    for file in ["model.lqml", "report.json", "training-trace.json"] {
+        fs::remove_file(augmentation_run.join(file)).unwrap();
+    }
+    fs::remove_dir(&augmentation_run).unwrap();
+    for parent in ["ame", "absent"] {
+        fs::write(
+            &augmentation_data,
+            format!(
+                "{}\n{}",
+                rows.join("\n"),
+                noisy.replace(
+                    "\"group_input\":\"hashi\"",
+                    &format!("\"group_input\":\"{parent}\"")
+                )
+            ),
+        )
+        .unwrap();
+        assert!(!augment().status.success());
+        assert!(!augmentation_run.exists());
+    }
+    fs::remove_file(augmentation_data).unwrap();
     assert!(!run().status.success());
     assert_eq!(fs::read(output.join("model.lqml")).unwrap(), before);
     let bad_output = directory.join("bad-run");
