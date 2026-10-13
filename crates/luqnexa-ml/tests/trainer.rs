@@ -28,6 +28,16 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
             .unwrap()
     };
     assert!(run().status.success());
+    let trace: serde_json::Value =
+        serde_json::from_slice(&fs::read(output.join("training-trace.json")).unwrap()).unwrap();
+    assert_eq!(trace.as_array().unwrap().len(), 2);
+    assert!(
+        trace
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|row| row.get("test").is_none())
+    );
     let before = fs::read(output.join("model.lqml")).unwrap();
     assert!(!run().status.success());
     assert_eq!(fs::read(output.join("model.lqml")).unwrap(), before);
@@ -52,6 +62,7 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
     // Explicitly checked temporary files only; no recursive removal or user data.
     fs::remove_file(output.join("model.lqml")).unwrap();
     fs::remove_file(output.join("report.json")).unwrap();
+    fs::remove_file(output.join("training-trace.json")).unwrap();
     fs::remove_dir(output).unwrap();
     fs::remove_file(data).unwrap();
     fs::remove_dir(directory).unwrap();

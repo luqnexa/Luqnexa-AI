@@ -114,6 +114,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut best = initial.to_bytes();
     let mut best_metric = metric(&initial, &rows, "validation");
     let mut selected = 0;
+    let mut trace = Vec::new();
     let train = rows
         .iter()
         .filter(|r| r.split == "train")
@@ -125,6 +126,17 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
         let model = trainer.quantize();
         let result = metric(&model, &rows, "validation");
+        if epoch == 1 || epoch % 10 == 0 || epoch == epochs {
+            let training = metric(&model, &rows, "train");
+            let float_loss = train
+                .iter()
+                .map(|row| trainer.loss(&row.input, &row.context, &row.good, &row.bad))
+                .sum::<f32>()
+                / train.len() as f32;
+            trace.push(json!({"epoch":epoch,"quantized_train_wins":training.0,
+                "quantized_train_loss":training.2,"float_train_loss":float_loss,
+                "validation_wins":result.0,"validation_loss":result.2}));
+        }
         if result.0 > best_metric.0 || (result.0 == best_metric.0 && result.2 < best_metric.2) {
             best = model.to_bytes();
             best_metric = result;
@@ -157,6 +169,10 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
     fs::create_dir(&output)?;
     fs::write(output.join("model.lqml"), &best)?;
+    fs::write(
+        output.join("training-trace.json"),
+        serde_json::to_vec_pretty(&trace)?,
+    )?;
     let report = json!({"architecture":"8192x16 hashed Unicode embeddings; 48->32 ReLU->1 pairwise neural scorer", "implementation":"Rust training and int8 runtime; no external model", "seed":seed,"epochs":epochs,"selected_epoch":selected,"fresh_initialization":true,"warm_start":false,
         "selection":"validation only; test evaluated after selection", "model_bytes":MODEL_BYTES,"resident_bytes":model.resident_bytes(),"model_sha256":format!("{:x}",Sha256::digest(&best)),"dataset_sha256":format!("{:x}",Sha256::digest(&raw)),"seconds":started.elapsed().as_secs_f64(),"before":before,"after":after,
         "installed":false,"network_used":false,"limits":"Synthetic candidate-pair evaluation, not full IME accuracy. Bounded mean-pooled character features, not general text generation. No A13 or phone measurement."});
