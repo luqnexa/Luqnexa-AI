@@ -16,6 +16,14 @@ struct Sample {
     bad: String,
     split: String,
 }
+fn shuffle(order: &mut [usize], state: &mut u64) {
+    for i in (1..order.len()).rev() {
+        *state ^= *state << 13;
+        *state ^= *state >> 7;
+        *state ^= *state << 17;
+        order.swap(i, (*state as usize) % (i + 1));
+    }
+}
 fn metric(model: &Model, rows: &[Sample], split: &str) -> (usize, usize, f32) {
     let mut wins = 0;
     let mut n = 0;
@@ -36,6 +44,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut epochs = 200_usize;
     let mut seed = 1337_u64;
     let mut interaction = false;
+    let mut shuffled = false;
     while let Some(arg) = args.next() {
         let value = args.next().ok_or("option needs a value")?;
         match arg.as_str() {
@@ -43,6 +52,13 @@ fn run() -> Result<(), Box<dyn Error>> {
             "--output" => output = Some(PathBuf::from(value)),
             "--epochs" => epochs = value.parse()?,
             "--seed" => seed = value.parse()?,
+            "--schedule" => {
+                shuffled = match value.as_str() {
+                    "cyclic" => false,
+                    "shuffled" => true,
+                    _ => return Err("schedule must be cyclic or shuffled".into()),
+                }
+            }
             "--architecture" => {
                 interaction = match value.as_str() {
                     "v1" => false,
@@ -131,9 +147,18 @@ fn run() -> Result<(), Box<dyn Error>> {
         .iter()
         .filter(|r| r.split == "train")
         .collect::<Vec<_>>();
+    let mut order: Vec<_> = (0..train.len()).collect();
+    let mut order_seed = (seed ^ 0x9e3779b97f4a7c15).max(1);
     for epoch in 1..=epochs {
+        if shuffled {
+            shuffle(&mut order, &mut order_seed);
+        }
         for offset in 0..train.len() {
-            let row = train[(offset + epoch) % train.len()];
+            let row = train[if shuffled {
+                order[offset]
+            } else {
+                (offset + epoch) % train.len()
+            }];
             trainer.learn(&row.input, &row.context, &row.good, &row.bad, 0.1)?;
         }
         let model = trainer.quantize();
@@ -193,6 +218,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let report = json!({"architecture":architecture, "format":std::str::from_utf8(&best[..8])?, "implementation":"Rust training and int8 runtime; no external model", "seed":seed,"epochs":epochs,"selected_epoch":selected,"fresh_initialization":true,"warm_start":false,
         "selection":"validation only; test evaluated after selection", "model_bytes":MODEL_BYTES,"resident_bytes":model.resident_bytes(),"model_sha256":format!("{:x}",Sha256::digest(&best)),"dataset_sha256":format!("{:x}",Sha256::digest(&raw)),"seconds":started.elapsed().as_secs_f64(),"before":before,"after":after,
         "installed":false,"network_used":false,"limits":"Synthetic candidate-pair evaluation, not full IME accuracy. Bounded mean-pooled character features, not general text generation. No A13 or phone measurement."});
+    let report = report_with_schedule(&report, shuffled);
     fs::write(
         output.join("report.json"),
         serde_json::to_vec_pretty(&report)?,
@@ -200,9 +226,39 @@ fn run() -> Result<(), Box<dyn Error>> {
     println!("{report}");
     Ok(())
 }
+fn report_with_schedule(report: &Value, shuffled: bool) -> Value {
+    let mut report = report.clone();
+    report["schedule"] = json!(if shuffled { "shuffled" } else { "cyclic" });
+    report["epoch_coverage"] = json!("Every training example exactly once; no evaluation sampling");
+    report
+}
 fn main() {
     if let Err(error) = run() {
         eprintln!("luqnexa-train: {error}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn shuffled_epochs_cover_each_example_once_and_repeat_from_the_same_seed() {
+        let mut a: Vec<_> = (0..72).collect();
+        let mut b = a.clone();
+        let mut seed_a = 13;
+        let mut seed_b = 13;
+        let original = a.clone();
+        for _ in 0..20 {
+            shuffle(&mut a, &mut seed_a);
+            shuffle(&mut b, &mut seed_b);
+            assert_eq!(a, b);
+            let mut sorted = a.clone();
+            sorted.sort_unstable();
+            assert_eq!(sorted, original);
+        }
+        assert_ne!(a, original);
+        shuffle(&mut [], &mut seed_a);
+        shuffle(&mut [0], &mut seed_a);
     }
 }
