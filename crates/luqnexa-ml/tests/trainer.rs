@@ -49,8 +49,38 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
     assert!(audit.status.success());
     let inspected: serde_json::Value = serde_json::from_slice(&audit.stdout).unwrap();
     assert_eq!(inspected["training"], false);
+    assert_eq!(inspected["temperature_examples"], 1);
     assert_eq!(inspected["rows"].as_array().unwrap().len(), 3);
     assert_eq!(fs::read(output.join("model.lqml")).unwrap(), before);
+    let audit_data = directory.join("audit.jsonl");
+    let mut alternate: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|row| serde_json::from_str(row).unwrap())
+        .collect();
+    alternate[1]["good"] = serde_json::json!("Different validation candidate");
+    alternate[2]["good"] = serde_json::json!("Different test candidate");
+    fs::write(
+        &audit_data,
+        alternate
+            .iter()
+            .map(|row| row.to_string())
+            .collect::<Vec<_>>()
+            .join("\n"),
+    )
+    .unwrap();
+    let other = Command::new(env!("CARGO_BIN_EXE_pair-audit"))
+        .args([
+            output.join("model.lqml").to_str().unwrap(),
+            audit_data.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(other.status.success());
+    let other: serde_json::Value = serde_json::from_slice(&other.stdout).unwrap();
+    assert_eq!(
+        inspected["ranking_temperature"],
+        other["ranking_temperature"]
+    );
     let experimental = directory.join("interaction-run");
     let result = Command::new(env!("CARGO_BIN_EXE_luqnexa-train"))
         .args([
@@ -101,5 +131,6 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
     }
     fs::remove_dir(experimental).unwrap();
     fs::remove_file(data).unwrap();
+    fs::remove_file(audit_data).unwrap();
     fs::remove_dir(directory).unwrap();
 }
