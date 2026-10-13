@@ -9,7 +9,7 @@ mod local;
 #[cfg(feature = "mobile-neural")]
 pub mod mobile;
 mod native;
-pub use casing::case_candidates;
+pub use casing::{case_candidates, dictionary_case_candidates};
 pub use native::typo_readings;
 mod personal;
 pub use local::{LocalConfigError, LocalLlm};

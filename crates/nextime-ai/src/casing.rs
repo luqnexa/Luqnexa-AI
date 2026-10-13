@@ -19,6 +19,53 @@ fn names() -> &'static HashMap<String, &'static str> {
     })
 }
 
+/// Registered spellings only. Does not synthesize title/upper case or change scores.
+/// Appends at most 16 alternatives; caller bounds and ranks the combined pool.
+pub fn dictionary_case_candidates(candidates: &mut Vec<Candidate>) {
+    let originals: Vec<_> = candidates.iter().take(16).cloned().collect();
+    for original in originals {
+        if let Some(surface) = canonical_name_text(&original.surface) {
+            if !candidates.iter().any(|c| c.surface == surface) {
+                candidates.push(Candidate {
+                    surface,
+                    score: original.score.saturating_sub(1),
+                    segments: original.segments,
+                });
+            }
+        }
+    }
+}
+
+fn canonical_name_text(text: &str) -> Option<String> {
+    if text.contains(['/', '\\', '@', '_', '`', ':', '=', '{', '}', '.']) {
+        return None;
+    }
+    let mut canonical = String::new();
+    for piece in text.split_inclusive(|c: char| !c.is_ascii_alphanumeric()) {
+        let end = piece
+            .find(|c: char| !c.is_ascii_alphanumeric())
+            .unwrap_or(piece.len());
+        let word = &piece[..end];
+        let number = word
+            .find(|c: char| c.is_ascii_digit())
+            .unwrap_or(word.len());
+        let name_end = if word[number..].bytes().all(|b| b.is_ascii_digit()) {
+            number
+        } else {
+            word.len()
+        };
+        canonical.push_str(
+            names()
+                .get(&word[..name_end].to_ascii_lowercase())
+                .copied()
+                .unwrap_or(&word[..name_end]),
+        );
+        canonical.push_str(&word[name_end..]);
+        canonical.push_str(&piece[end..]);
+    }
+    (canonical != text).then_some(canonical)
+}
+
 pub fn case_candidates(candidates: &mut Vec<Candidate>, limit: usize) {
     let originals: Vec<_> = candidates.iter().take(3).cloned().collect();
     for original in originals {
@@ -108,6 +155,39 @@ pub fn case_candidates(candidates: &mut Vec<Candidate>, limit: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn registered_case_alternatives_work_with_a_full_pool_and_preserve_identifiers() {
+        let mut candidates = (0..32)
+            .map(|i| Candidate {
+                surface: format!("example{i}"),
+                score: 100 - i,
+                segments: 1,
+            })
+            .collect::<Vec<_>>();
+        candidates[0].surface = "githubで共有する".into();
+        dictionary_case_candidates(&mut candidates);
+        assert_eq!(candidates.len(), 33);
+        assert_eq!(candidates[0].surface, "githubで共有する");
+        assert_eq!(candidates[32].surface, "GitHubで共有する");
+        assert_eq!(candidates[32].score, 99);
+        let before = candidates.clone();
+        dictionary_case_candidates(&mut candidates);
+        assert_eq!(candidates, before);
+        for text in [
+            "user_github",
+            "https://github.com/Case",
+            "unknownterm",
+            "file.py",
+        ] {
+            let mut values = vec![Candidate {
+                surface: text.into(),
+                score: 0,
+                segments: 1,
+            }];
+            dictionary_case_candidates(&mut values);
+            assert_eq!(values.len(), 1);
+        }
+    }
     #[test]
     fn names_gain_case_choices_and_sensitive_identifiers_stay_literal() {
         for (input, expected) in [
