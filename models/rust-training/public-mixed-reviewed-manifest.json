@@ -1,0 +1,12 @@
+{
+  "source": "https://downloads.tatoeba.org/exports/per_language/jpn/jpn_sentences_detailed.tsv.bz2",
+  "source_sha256": "f597d8f76473181f7fae482481030a31565fb427d64d2def8595218d128c6981",
+  "source_retrieval_date": "Existing cache; retrieval date not recorded here",
+  "license": "CC BY 2.0 FR",
+  "license_url": "https://creativecommons.org/licenses/by/2.0/fr/",
+  "examples": 14,
+  "original_sentences_preserved": true,
+  "changes": "Assistant added romaji, context and contrast; not independently validated",
+  "excluded_legacy_corpus_heldout": true,
+  "frozen_evaluation_sha256": "d8257f1acc8919572425c20a78691be7cf5e256e4a6bdc2585f1618f5416be14"
+}
