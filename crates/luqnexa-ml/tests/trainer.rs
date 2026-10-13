@@ -51,6 +51,26 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
     assert_eq!(inspected["training"], false);
     assert_eq!(inspected["rows"].as_array().unwrap().len(), 3);
     assert_eq!(fs::read(output.join("model.lqml")).unwrap(), before);
+    let experimental = directory.join("interaction-run");
+    let result = Command::new(env!("CARGO_BIN_EXE_luqnexa-train"))
+        .args([
+            "--data",
+            data.to_str().unwrap(),
+            "--output",
+            experimental.to_str().unwrap(),
+            "--epochs",
+            "2",
+            "--architecture",
+            "interaction-v2",
+        ])
+        .output()
+        .unwrap();
+    assert!(result.status.success());
+    assert_eq!(
+        &fs::read(experimental.join("model.lqml")).unwrap()[..8],
+        b"LQML0002"
+    );
+    assert_eq!(&before[..8], b"LQML0001");
     assert!(!run().status.success());
     assert_eq!(fs::read(output.join("model.lqml")).unwrap(), before);
     let bad_output = directory.join("bad-run");
@@ -76,6 +96,10 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
     fs::remove_file(output.join("report.json")).unwrap();
     fs::remove_file(output.join("training-trace.json")).unwrap();
     fs::remove_dir(output).unwrap();
+    for file in ["model.lqml", "report.json", "training-trace.json"] {
+        fs::remove_file(experimental.join(file)).unwrap();
+    }
+    fs::remove_dir(experimental).unwrap();
     fs::remove_file(data).unwrap();
     fs::remove_dir(directory).unwrap();
 }

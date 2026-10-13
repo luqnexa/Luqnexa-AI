@@ -1,20 +1,34 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 use super::*;
 pub struct Trainer {
+    interactions: bool,
     embeddings: Box<[[f32; EMBEDDING]]>,
     hidden: [[f32; INPUT]; HIDDEN],
     biases: [f32; HIDDEN],
     output: [f32; HIDDEN],
 }
+
 struct Forward {
     features: Features,
     input: [f32; INPUT],
+    raw_input: [f32; INPUT],
     hidden: [f32; HIDDEN],
     score: f32,
 }
 impl Trainer {
     /// A fresh deterministic initialization, never an implicit warm start.
     pub fn new(seed: u64) -> Self {
+        Self::initialize(seed, false)
+    }
+    /// Experimental interaction architecture, explicitly selected by the caller.
+    pub fn new_interaction(seed: u64) -> Self {
+        Self::initialize(seed, true)
+    }
+    /// Explicit legacy initialization for reproducibility, never a warm start.
+    pub fn new_legacy(seed: u64) -> Self {
+        Self::initialize(seed, false)
+    }
+    fn initialize(seed: u64, interactions: bool) -> Self {
         let mut state = seed.max(1);
         let mut random = || {
             state ^= state << 13;
@@ -29,6 +43,7 @@ impl Trainer {
         let hidden = std::array::from_fn(|_| std::array::from_fn(|_| random()));
         let output = std::array::from_fn(|_| random());
         Self {
+            interactions,
             embeddings,
             hidden,
             biases: [0.0; HIDDEN],
@@ -47,6 +62,10 @@ impl Trainer {
                 }
             }
         }
+        let raw_input = input;
+        if self.interactions {
+            interact(&mut input);
+        }
         let hidden = std::array::from_fn(|j| {
             (self.biases[j]
                 + self.hidden[j]
@@ -60,6 +79,7 @@ impl Trainer {
         Forward {
             features,
             input,
+            raw_input,
             hidden,
             score,
         }
@@ -111,7 +131,16 @@ impl Trainer {
             self.biases[j] -= rate * (ga[j] + gb[j]).clamp(-1.0, 1.0);
             self.output[j] -= rate * (gradient * (a.hidden[j] - b.hidden[j])).clamp(-1.0, 1.0);
         }
-        for (pass, input_gradient) in [(&a, ia), (&b, ib)] {
+        for (pass, mut input_gradient) in [(&a, ia), (&b, ib)] {
+            if self.interactions {
+                for i in 0..EMBEDDING {
+                    let product_gradient = input_gradient[EMBEDDING + i];
+                    input_gradient[EMBEDDING + i] =
+                        product_gradient * pass.raw_input[2 * EMBEDDING + i] * EMBEDDING as f32;
+                    input_gradient[2 * EMBEDDING + i] +=
+                        product_gradient * pass.raw_input[EMBEDDING + i] * EMBEDDING as f32;
+                }
+            }
             for channel in 0..3 {
                 let n = pass.features.lengths[channel];
                 for &id in &pass.features.ids[channel][..n] {
@@ -127,6 +156,7 @@ impl Trainer {
     }
     pub fn quantize(&self) -> Model {
         Model {
+            interactions: self.interactions,
             embeddings: self
                 .embeddings
                 .iter()
@@ -138,5 +168,36 @@ impl Trainer {
             output: Row::quantize(&self.output),
             output_bias: 0.0,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn interaction_embedding_gradient_matches_finite_difference() {
+        let mut trainer = Trainer::new_interaction(17);
+        trainer.hidden = [[0.05; INPUT]; HIDDEN];
+        trainer.biases = [0.25; HIDDEN];
+        trainer.output = [0.2; HIDDEN];
+        let feature = usize::from(Features::new("read", "context", "good").ids[1][0]);
+        let before = trainer.embeddings[feature][0];
+        let epsilon = 0.01;
+        trainer.embeddings[feature][0] = before + epsilon;
+        let plus = trainer.loss("read", "context", "good", "bad");
+        trainer.embeddings[feature][0] = before - epsilon;
+        let minus = trainer.loss("read", "context", "good", "bad");
+        trainer.embeddings[feature][0] = before;
+        let numerical = (plus - minus) / (2.0 * epsilon);
+        let rate = 0.1;
+        trainer
+            .learn("read", "context", "good", "bad", rate)
+            .unwrap();
+        let analytical = (before - trainer.embeddings[feature][0]) / rate;
+        assert!(numerical.abs() > 0.0001);
+        assert!(
+            (numerical - analytical).abs() < 0.0001,
+            "numerical={numerical}, analytical={analytical}"
+        );
     }
 }

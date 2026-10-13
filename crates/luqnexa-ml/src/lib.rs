@@ -84,6 +84,7 @@ impl<const N: usize> Row<N> {
 
 #[derive(Debug)]
 pub struct Model {
+    interactions: bool,
     embeddings: Box<[Row<EMBEDDING>]>,
     hidden: [Row<INPUT>; HIDDEN],
     biases: [f32; HIDDEN],
@@ -93,6 +94,11 @@ pub struct Model {
 #[derive(Clone, Copy, Debug)]
 pub struct PreparedInput {
     values: [f32; INPUT],
+}
+fn interact(values: &mut [f32; INPUT]) {
+    for i in 0..EMBEDDING {
+        values[EMBEDDING + i] *= values[2 * EMBEDDING + i] * EMBEDDING as f32;
+    }
 }
 
 impl Model {
@@ -120,6 +126,9 @@ impl Model {
         let f = Features::new("", "", surface);
         let mut values = input.values;
         self.embed(&f, 2, &mut values);
+        if self.interactions {
+            interact(&mut values);
+        }
         let mut result = self.output_bias;
         for j in 0..HIDDEN {
             let sum = self.biases[j]
@@ -137,7 +146,11 @@ impl Model {
     }
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(MODEL_BYTES);
-        bytes.extend_from_slice(b"LQML0001");
+        bytes.extend_from_slice(if self.interactions {
+            b"LQML0002"
+        } else {
+            b"LQML0001"
+        });
         for n in [BUCKETS, EMBEDDING, HIDDEN] {
             bytes.extend_from_slice(&(n as u32).to_le_bytes());
         }
@@ -157,7 +170,8 @@ impl Model {
         bytes
     }
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
-        if bytes.len() != MODEL_BYTES || &bytes[..8] != b"LQML0001" {
+        if bytes.len() != MODEL_BYTES || (&bytes[..8] != b"LQML0001" && &bytes[..8] != b"LQML0002")
+        {
             return Err("invalid model format or size");
         }
         for (i, n) in [BUCKETS, EMBEDDING, HIDDEN].into_iter().enumerate() {
@@ -199,6 +213,7 @@ impl Model {
         let output = row(bytes, &mut cursor)?;
         let output_bias = scalar(bytes, &mut cursor)?;
         Ok(Self {
+            interactions: &bytes[..8] == b"LQML0002",
             embeddings: embeddings.into_boxed_slice(),
             hidden,
             biases,
@@ -256,19 +271,39 @@ mod tests {
     }
     #[test]
     fn opposite_contexts_must_learn_opposite_choices() {
-        let mut trainer = Trainer::new(1337);
-        for _ in 0..2000 {
-            trainer
-                .learn("same-reading", "meal", "utensil", "bridge", 0.1)
-                .unwrap();
-            trainer
-                .learn("same-reading", "river", "bridge", "utensil", 0.1)
-                .unwrap();
+        for mut trainer in [Trainer::new(1337), Trainer::new_interaction(1337)] {
+            for _ in 0..2000 {
+                trainer
+                    .learn("same-reading", "meal", "utensil", "bridge", 0.1)
+                    .unwrap();
+                trainer
+                    .learn("same-reading", "river", "bridge", "utensil", 0.1)
+                    .unwrap();
+            }
+            let model = trainer.quantize();
+            let meal = model.prepare("same-reading", "meal");
+            let river = model.prepare("same-reading", "river");
+            assert!(model.score(&meal, "utensil") > model.score(&meal, "bridge"));
+            assert!(model.score(&river, "bridge") > model.score(&river, "utensil"));
         }
-        let model = trainer.quantize();
-        let meal = model.prepare("same-reading", "meal");
-        let river = model.prepare("same-reading", "river");
-        assert!(model.score(&meal, "utensil") > model.score(&meal, "bridge"));
-        assert!(model.score(&river, "bridge") > model.score(&river, "utensil"));
+    }
+    #[test]
+    fn legacy_format_keeps_legacy_scoring_and_unknown_versions_fail() {
+        let legacy = Trainer::new_legacy(9).quantize();
+        let bytes = legacy.to_bytes();
+        assert_eq!(&bytes[..8], b"LQML0001");
+        let loaded = Model::from_bytes(&bytes).unwrap();
+        assert_eq!(loaded.to_bytes(), bytes);
+        assert_eq!(
+            loaded.score(&loaded.prepare("abc", "context"), "candidate"),
+            legacy.score(&legacy.prepare("abc", "context"), "candidate")
+        );
+        assert_eq!(
+            &Trainer::new_interaction(9).quantize().to_bytes()[..8],
+            b"LQML0002"
+        );
+        let mut invalid = bytes;
+        invalid[7] = b'3';
+        assert!(Model::from_bytes(&invalid).is_err());
     }
 }

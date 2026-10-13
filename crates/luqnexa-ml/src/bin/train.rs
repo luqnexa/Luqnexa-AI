@@ -35,6 +35,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut output = None;
     let mut epochs = 200_usize;
     let mut seed = 1337_u64;
+    let mut interaction = false;
     while let Some(arg) = args.next() {
         let value = args.next().ok_or("option needs a value")?;
         match arg.as_str() {
@@ -42,6 +43,13 @@ fn run() -> Result<(), Box<dyn Error>> {
             "--output" => output = Some(PathBuf::from(value)),
             "--epochs" => epochs = value.parse()?,
             "--seed" => seed = value.parse()?,
+            "--architecture" => {
+                interaction = match value.as_str() {
+                    "v1" => false,
+                    "interaction-v2" => true,
+                    _ => return Err("architecture must be v1 or interaction-v2".into()),
+                }
+            }
             _ => return Err("unknown option".into()),
         }
     }
@@ -109,7 +117,11 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
     }
     let started = Instant::now();
-    let mut trainer = Trainer::new(seed);
+    let mut trainer = if interaction {
+        Trainer::new_interaction(seed)
+    } else {
+        Trainer::new(seed)
+    };
     let initial = trainer.quantize();
     let mut best = initial.to_bytes();
     let mut best_metric = metric(&initial, &rows, "validation");
@@ -173,7 +185,12 @@ fn run() -> Result<(), Box<dyn Error>> {
         output.join("training-trace.json"),
         serde_json::to_vec_pretty(&trace)?,
     )?;
-    let report = json!({"architecture":"8192x16 hashed Unicode embeddings; 48->32 ReLU->1 pairwise neural scorer", "implementation":"Rust training and int8 runtime; no external model", "seed":seed,"epochs":epochs,"selected_epoch":selected,"fresh_initialization":true,"warm_start":false,
+    let architecture = if interaction {
+        "8192x16 hashed Unicode embeddings; context/surface Hadamard interaction; 48->32 ReLU->1 pairwise neural scorer"
+    } else {
+        "8192x16 hashed Unicode embeddings; 48->32 ReLU->1 pairwise neural scorer"
+    };
+    let report = json!({"architecture":architecture, "format":std::str::from_utf8(&best[..8])?, "implementation":"Rust training and int8 runtime; no external model", "seed":seed,"epochs":epochs,"selected_epoch":selected,"fresh_initialization":true,"warm_start":false,
         "selection":"validation only; test evaluated after selection", "model_bytes":MODEL_BYTES,"resident_bytes":model.resident_bytes(),"model_sha256":format!("{:x}",Sha256::digest(&best)),"dataset_sha256":format!("{:x}",Sha256::digest(&raw)),"seconds":started.elapsed().as_secs_f64(),"before":before,"after":after,
         "installed":false,"network_used":false,"limits":"Synthetic candidate-pair evaluation, not full IME accuracy. Bounded mean-pooled character features, not general text generation. No A13 or phone measurement."});
     fs::write(

@@ -22,17 +22,22 @@ static ALLOCATOR: Counted = Counted;
 
 #[test]
 fn repeated_unicode_inference_has_no_heap_allocations_after_loading() {
-    let model = luqnexa_ml::Trainer::new(1337).quantize();
+    let models = [
+        luqnexa_ml::Trainer::new(1337).quantize(),
+        luqnexa_ml::Trainer::new_interaction(1337).quantize(),
+    ];
     let input = "Pythonでモデルを検証する";
     let context = "直前の文脈：日本語とEnglishの混在入力";
-    let before = ALLOCATIONS.load(Ordering::Relaxed);
-    for _ in 0..100 {
-        let prepared = model.prepare(std::hint::black_box(input), context);
-        for surface in ["Pythonでモデルを検証する", "Pythonでモデルを検証しない"]
-        {
-            std::hint::black_box(model.score(&prepared, surface));
+    for model in models {
+        let before = ALLOCATIONS.load(Ordering::Relaxed);
+        for _ in 0..100 {
+            let prepared = model.prepare(std::hint::black_box(input), context);
+            for surface in ["Pythonでモデルを検証する", "Pythonでモデルを検証しない"]
+            {
+                std::hint::black_box(model.score(&prepared, surface));
+            }
         }
+        let after = ALLOCATIONS.load(Ordering::Relaxed);
+        assert_eq!(before, after);
     }
-    let after = ALLOCATIONS.load(Ordering::Relaxed);
-    assert_eq!(before, after);
 }
