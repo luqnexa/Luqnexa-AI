@@ -254,4 +254,21 @@ mod tests {
         }
         assert_eq!(a.quantize().to_bytes(), b.quantize().to_bytes());
     }
+    #[test]
+    fn opposite_contexts_must_learn_opposite_choices() {
+        let mut trainer = Trainer::new(1337);
+        for _ in 0..2000 {
+            trainer
+                .learn("same-reading", "meal", "utensil", "bridge", 0.1)
+                .unwrap();
+            trainer
+                .learn("same-reading", "river", "bridge", "utensil", 0.1)
+                .unwrap();
+        }
+        let model = trainer.quantize();
+        let meal = model.prepare("same-reading", "meal");
+        let river = model.prepare("same-reading", "river");
+        assert!(model.score(&meal, "utensil") > model.score(&meal, "bridge"));
+        assert!(model.score(&river, "bridge") > model.score(&river, "utensil"));
+    }
 }

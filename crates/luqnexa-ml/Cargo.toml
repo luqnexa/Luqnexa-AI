@@ -21,3 +21,8 @@ required-features = ["trainer"]
 [[bench]]
 name = "inference"
 harness = false
+
+[[bin]]
+name = "pair-audit"
+path = "src/bin/pair-audit.rs"
+required-features = ["trainer"]

@@ -39,6 +39,18 @@ fn cli_enforces_partitions_and_keeps_existing_runs() {
             .all(|row| row.get("test").is_none())
     );
     let before = fs::read(output.join("model.lqml")).unwrap();
+    let audit = Command::new(env!("CARGO_BIN_EXE_pair-audit"))
+        .args([
+            output.join("model.lqml").to_str().unwrap(),
+            data.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(audit.status.success());
+    let inspected: serde_json::Value = serde_json::from_slice(&audit.stdout).unwrap();
+    assert_eq!(inspected["training"], false);
+    assert_eq!(inspected["rows"].as_array().unwrap().len(), 3);
+    assert_eq!(fs::read(output.join("model.lqml")).unwrap(), before);
     assert!(!run().status.success());
     assert_eq!(fs::read(output.join("model.lqml")).unwrap(), before);
     let bad_output = directory.join("bad-run");
