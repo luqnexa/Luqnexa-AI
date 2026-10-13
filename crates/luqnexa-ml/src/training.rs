@@ -169,11 +169,50 @@ impl Trainer {
             output_bias: 0.0,
         }
     }
+    /// Optional offline regularization once per epoch. Biases are not decayed.
+    pub fn decay_weights(&mut self, amount: f32) -> Result<(), &'static str> {
+        if !amount.is_finite() || !(0.0..=0.1).contains(&amount) {
+            return Err("epoch weight decay must be finite in 0..0.1");
+        }
+        if amount == 0.0 {
+            return Ok(());
+        }
+        let factor = 1.0 - amount;
+        for row in self.embeddings.iter_mut() {
+            for weight in row {
+                *weight *= factor;
+            }
+        }
+        for row in &mut self.hidden {
+            for weight in row {
+                *weight *= factor;
+            }
+        }
+        for weight in &mut self.output {
+            *weight *= factor;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn weight_decay_zero_is_identical_and_invalid_values_do_not_mutate_weights() {
+        let mut trainer = Trainer::new_interaction(11);
+        let before = trainer.quantize().to_bytes();
+        trainer.decay_weights(0.0).unwrap();
+        assert_eq!(trainer.quantize().to_bytes(), before);
+        for amount in [f32::NAN, f32::INFINITY, -0.001, 0.2] {
+            assert!(trainer.decay_weights(amount).is_err());
+            assert_eq!(trainer.quantize().to_bytes(), before);
+        }
+        let weight = trainer.embeddings[0][0];
+        trainer.decay_weights(0.001).unwrap();
+        assert_eq!(trainer.embeddings[0][0], weight * 0.999);
+        assert_ne!(trainer.quantize().to_bytes(), before);
+    }
     #[test]
     fn interaction_embedding_gradient_matches_finite_difference() {
         let mut trainer = Trainer::new_interaction(17);

@@ -45,6 +45,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut seed = 1337_u64;
     let mut interaction = false;
     let mut shuffled = false;
+    let mut epoch_decay = 0.0_f32;
     while let Some(arg) = args.next() {
         let value = args.next().ok_or("option needs a value")?;
         match arg.as_str() {
@@ -52,6 +53,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             "--output" => output = Some(PathBuf::from(value)),
             "--epochs" => epochs = value.parse()?,
             "--seed" => seed = value.parse()?,
+            "--epoch-weight-decay" => epoch_decay = value.parse()?,
             "--schedule" => {
                 shuffled = match value.as_str() {
                     "cyclic" => false,
@@ -71,6 +73,9 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
     if !(1..=10_000).contains(&epochs) {
         return Err("epochs must be 1..10000".into());
+    }
+    if !epoch_decay.is_finite() || !(0.0..=0.1).contains(&epoch_decay) {
+        return Err("epoch weight decay must be finite in 0..0.1".into());
     }
     let data = data.ok_or("--data required")?;
     let output =
@@ -161,6 +166,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             }];
             trainer.learn(&row.input, &row.context, &row.good, &row.bad, 0.1)?;
         }
+        trainer.decay_weights(epoch_decay)?;
         let model = trainer.quantize();
         let result = metric(&model, &rows, "validation");
         if epoch == 1 || epoch % 10 == 0 || epoch == epochs {
@@ -218,7 +224,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let report = json!({"architecture":architecture, "format":std::str::from_utf8(&best[..8])?, "implementation":"Rust training and int8 runtime; no external model", "seed":seed,"epochs":epochs,"selected_epoch":selected,"fresh_initialization":true,"warm_start":false,
         "selection":"validation only; test evaluated after selection", "model_bytes":MODEL_BYTES,"resident_bytes":model.resident_bytes(),"model_sha256":format!("{:x}",Sha256::digest(&best)),"dataset_sha256":format!("{:x}",Sha256::digest(&raw)),"seconds":started.elapsed().as_secs_f64(),"before":before,"after":after,
         "installed":false,"network_used":false,"limits":"Synthetic candidate-pair evaluation, not full IME accuracy. Bounded mean-pooled character features, not general text generation. No A13 or phone measurement."});
-    let report = report_with_schedule(&report, shuffled);
+    let report = report_with_schedule(&report, shuffled, epoch_decay);
     fs::write(
         output.join("report.json"),
         serde_json::to_vec_pretty(&report)?,
@@ -226,9 +232,10 @@ fn run() -> Result<(), Box<dyn Error>> {
     println!("{report}");
     Ok(())
 }
-fn report_with_schedule(report: &Value, shuffled: bool) -> Value {
+fn report_with_schedule(report: &Value, shuffled: bool, epoch_decay: f32) -> Value {
     let mut report = report.clone();
     report["schedule"] = json!(if shuffled { "shuffled" } else { "cyclic" });
+    report["epoch_weight_decay"] = json!(epoch_decay);
     report["epoch_coverage"] = json!("Every training example exactly once; no evaluation sampling");
     report
 }
